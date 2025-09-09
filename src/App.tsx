@@ -23,7 +23,7 @@ const App = () => {
 
   const handleLogin = (credentials: { email: string; password: string }) => {
     // In real app, this would validate with backend
-    if (credentials.email === 'admin@company.com' && credentials.password === 'admin123') {
+    if (credentials.email === 'himanshuusethii@gmail.com' && credentials.password === 'himanshu123') {
       setIsAuthenticated(true);
       localStorage.setItem('isAuthenticated', 'true');
     }
