@@ -107,17 +107,17 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-card border-b card-shadow">
+      <header className="glass-effect border-b backdrop-blur-xl">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center justify-center w-10 h-10 gradient-primary rounded-lg">
-              <Building2 className="h-5 w-5 text-primary-foreground" />
+            <div className="flex items-center justify-center w-12 h-12 gradient-primary rounded-xl shadow-glow">
+              <Building2 className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Lead Management</h1>
-              <p className="text-sm text-muted-foreground">Admin Dashboard</p>
+              <h1 className="text-2xl font-bold gradient-text">Lead Management</h1>
+              <p className="text-sm text-muted-foreground">Modern Admin Dashboard</p>
             </div>
           </div>
           
@@ -126,12 +126,12 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
               onClick={handleExportLeads}
               variant="outline"
               size="sm"
-              className="hidden sm:flex"
+              className="hidden sm:flex border-border/50 hover:bg-accent/50"
             >
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button onClick={onLogout} variant="outline" size="sm">
+            <Button onClick={onLogout} variant="outline" size="sm" className="border-border/50 hover:bg-accent/50">
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
@@ -141,67 +141,67 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h2 className="text-4xl font-bold text-foreground mb-2">
+            Hi, Admin 👋
+          </h2>
+          <p className="text-muted-foreground">Welcome to Lead Management</p>
+        </div>
+
         {/* Stats Cards */}
         <div className="dashboard-grid mb-8">
-          <Card className="stat-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Leads
-              </CardTitle>
-              <Users className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.totalLeads}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                All time leads
-              </p>
-            </CardContent>
-          </Card>
+          <div className="stat-card-gradient-1">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm text-white/80 font-medium uppercase tracking-wide">
+                  TOTAL LEADS
+                </p>
+                <div className="text-3xl font-bold text-white mt-2">{stats.totalLeads}</div>
+                <p className="text-xs text-white/60 mt-1">All time leads</p>
+              </div>
+              <Users className="h-8 w-8 text-white/80" />
+            </div>
+          </div>
 
-          <Card className="stat-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                New Leads
-              </CardTitle>
-              <Clock className="h-4 w-4 text-warning" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.newLeads}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Require attention
-              </p>
-            </CardContent>
-          </Card>
+          <div className="stat-card-gradient-2">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm text-white/80 font-medium uppercase tracking-wide">
+                  NEW LEADS
+                </p>
+                <div className="text-3xl font-bold text-white mt-2">{stats.newLeads}</div>
+                <p className="text-xs text-white/60 mt-1">Require attention</p>
+              </div>
+              <Clock className="h-8 w-8 text-white/80" />
+            </div>
+          </div>
 
-          <Card className="stat-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Contacted
-              </CardTitle>
-              <MessageCircle className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.contacted}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                In progress
-              </p>
-            </CardContent>
-          </Card>
+          <div className="stat-card-gradient-3">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm text-white/80 font-medium uppercase tracking-wide">
+                  CONTACTED
+                </p>
+                <div className="text-3xl font-bold text-white mt-2">{stats.contacted}</div>
+                <p className="text-xs text-white/60 mt-1">In progress</p>
+              </div>
+              <MessageCircle className="h-8 w-8 text-white/80" />
+            </div>
+          </div>
 
-          <Card className="stat-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Converted
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.converted}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Success rate
-              </p>
-            </CardContent>
-          </Card>
+          <div className="stat-card-gradient-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm text-white/80 font-medium uppercase tracking-wide">
+                  CONVERTED
+                </p>
+                <div className="text-3xl font-bold text-white mt-2">{stats.converted}</div>
+                <p className="text-xs text-white/60 mt-1">Success rate</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-white/80" />
+            </div>
+          </div>
         </div>
 
         {/* Leads Table */}

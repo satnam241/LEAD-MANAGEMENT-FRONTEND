@@ -2,40 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Professional Lead Management Design System */
+/* Modern Dark Lead Management Design System */
 
 @layer base {
   :root {
-    /* Core colors - Professional blue theme */
-    --background: 0 0% 100%;
-    --foreground: 215 25% 27%;
+    /* Dark theme core colors */
+    --background: 250 15% 9%;
+    --foreground: 250 15% 95%;
 
-    /* Card system */
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 27%;
+    /* Card system - Dark with glass effect */
+    --card: 250 15% 12%;
+    --card-foreground: 250 15% 95%;
 
     /* Interactive elements */
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 27%;
+    --popover: 250 15% 12%;
+    --popover-foreground: 250 15% 95%;
 
-    /* Brand colors - Professional blue */
-    --primary: 217 91% 60%;
+    /* Brand colors - Vibrant purple/blue */
+    --primary: 260 85% 65%;
     --primary-foreground: 0 0% 98%;
-    --primary-hover: 217 91% 55%;
+    --primary-hover: 260 85% 70%;
 
     /* Secondary colors */
-    --secondary: 214 32% 91%;
-    --secondary-foreground: 215 25% 27%;
+    --secondary: 250 15% 20%;
+    --secondary-foreground: 250 15% 95%;
 
     /* Muted elements */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 250 15% 15%;
+    --muted-foreground: 250 15% 65%;
 
     /* Accent colors */
-    --accent: 214 32% 91%;
-    --accent-foreground: 215 25% 27%;
+    --accent: 250 15% 18%;
+    --accent-foreground: 250 15% 95%;
 
-    /* Status colors */
+    /* Status colors - Vibrant */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --success: 142 71% 45%;
@@ -44,21 +44,32 @@
     --warning-foreground: 0 0% 98%;
 
     /* Borders and inputs */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 60%;
+    --border: 250 15% 20%;
+    --input: 250 15% 15%;
+    --ring: 260 85% 65%;
 
     /* Layout */
-    --radius: 0.75rem;
+    --radius: 1rem;
     
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    /* Enhanced shadows for dark theme */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+    --shadow: 0 4px 12px 0 rgb(0 0 0 / 0.15), 0 2px 4px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.25), 0 10px 10px -5px rgb(0 0 0 / 0.1);
+    --shadow-glow: 0 0 30px -5px rgb(139 92 246 / 0.3);
     
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 70%));
-    --gradient-background: linear-gradient(180deg, hsl(210 40% 98%), hsl(214 32% 95%));
+    /* Vibrant gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(260 85% 65%), hsl(280 85% 65%));
+    --gradient-secondary: linear-gradient(135deg, hsl(330 85% 65%), hsl(300 85% 70%));
+    --gradient-accent: linear-gradient(135deg, hsl(200 85% 65%), hsl(220 85% 70%));
+    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%), hsl(162 71% 50%));
+    --gradient-warning: linear-gradient(135deg, hsl(38 92% 50%), hsl(48 92% 55%));
+    --gradient-background: linear-gradient(135deg, hsl(250 15% 9%) 0%, hsl(260 15% 12%) 50%, hsl(270 15% 9%) 100%);
+    
+    /* Stat card gradients */
+    --gradient-stat-1: linear-gradient(135deg, hsl(330 85% 55%) 0%, hsl(300 85% 65%) 100%);
+    --gradient-stat-2: linear-gradient(135deg, hsl(260 85% 55%) 0%, hsl(280 85% 65%) 100%);
+    --gradient-stat-3: linear-gradient(135deg, hsl(200 85% 55%) 0%, hsl(220 85% 65%) 100%);
+    --gradient-stat-4: linear-gradient(135deg, hsl(38 85% 55%) 0%, hsl(48 85% 65%) 100%);
 
     --sidebar-background: 0 0% 98%;
 
@@ -142,18 +153,50 @@
 }
 
 @layer components {
-  /* Dashboard specific styles */
+  /* Modern dashboard components */
   .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.5rem;
   }
   
+  /* Gradient stat cards */
+  .stat-card-gradient-1 {
+    background: var(--gradient-stat-1);
+    @apply text-white rounded-xl p-6 card-shadow border-0 overflow-hidden relative;
+  }
+  
+  .stat-card-gradient-2 {
+    background: var(--gradient-stat-2);
+    @apply text-white rounded-xl p-6 card-shadow border-0 overflow-hidden relative;
+  }
+  
+  .stat-card-gradient-3 {
+    background: var(--gradient-stat-3);
+    @apply text-white rounded-xl p-6 card-shadow border-0 overflow-hidden relative;
+  }
+  
+  .stat-card-gradient-4 {
+    background: var(--gradient-stat-4);
+    @apply text-white rounded-xl p-6 card-shadow border-0 overflow-hidden relative;
+  }
+  
   .stat-card {
-    @apply bg-card rounded-lg p-6 card-shadow border-0;
+    @apply bg-card rounded-xl p-6 card-shadow border-0;
   }
   
   .data-table {
-    @apply bg-card rounded-lg card-shadow overflow-hidden;
+    @apply bg-card rounded-xl card-shadow overflow-hidden border border-border/50;
+  }
+  
+  .glass-effect {
+    @apply backdrop-blur-xl bg-card/50 border border-border/20;
+  }
+  
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
