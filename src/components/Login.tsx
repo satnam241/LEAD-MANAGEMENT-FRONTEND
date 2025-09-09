@@ -22,7 +22,7 @@ const Login = ({ onLogin }: LoginProps) => {
 
     // Simulate login process
     setTimeout(() => {
-      if (email === 'admin@company.com' && password === 'admin123') {
+      if (email === 'himanshuusethii@gmail.com' && password === 'himanshu123') {
         onLogin({ email, password });
         toast({
           title: "Login Successful",
@@ -31,7 +31,7 @@ const Login = ({ onLogin }: LoginProps) => {
       } else {
         toast({
           title: "Login Failed",
-          description: "Invalid credentials. Use admin@company.com / admin123",
+          description: "Invalid credentials. Please check your email and password",
           variant: "destructive",
         });
       }
@@ -63,7 +63,7 @@ const Login = ({ onLogin }: LoginProps) => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@company.com"
+                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -96,10 +96,6 @@ const Login = ({ onLogin }: LoginProps) => {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          
-          <div className="text-center text-sm text-muted-foreground">
-            Demo: admin@company.com / admin123
-          </div>
         </CardContent>
       </Card>
     </div>
