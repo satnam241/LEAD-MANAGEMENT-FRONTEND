@@ -15,10 +15,10 @@ CREATE TABLE public.leads (
 );
 
 -- Enable Row Level Security
-ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+ALT-- Create policies for leads access (public access for webhook, admin access for dashboard)
+CREATE POLICY "Enable read accER TABLE public.leads ENABLE ROW LEVEL SECURITY;
 
--- Create policies for leads access (public access for webhook, admin access for dashboard)
-CREATE POLICY "Enable read access for all users" ON public.leads FOR SELECT USING (true);
+ess for all users" ON public.leads FOR SELECT USING (true);
 CREATE POLICY "Enable insert for all users" ON public.leads FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable update for all users" ON public.leads FOR UPDATE USING (true);
 
