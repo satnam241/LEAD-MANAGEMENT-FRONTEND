@@ -14,26 +14,26 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Check for existing auth session
+  // Check for existing token in localStorage
   useEffect(() => {
-    const authStatus = localStorage.getItem('isAuthenticated');
-    setIsAuthenticated(authStatus === 'true');
+    const token = localStorage.getItem("token");
+    setIsAuthenticated(!!token);
     setLoading(false);
   }, []);
 
-  const handleLogin = (credentials: { email: string; password: string }) => {
-    // In real app, this would validate with backend
-    if (credentials.email === 'himanshuusethii@gmail.com' && credentials.password === 'himanshu123') {
-      setIsAuthenticated(true);
-      localStorage.setItem('isAuthenticated', 'true');
-    }
+  // When login succeeds in Login.tsx, we store token here
+  const handleLogin = (token: string) => {
+    localStorage.setItem("token", token);
+    setIsAuthenticated(true);
   };
 
+  // Logout → clear token + reset state
   const handleLogout = () => {
+    localStorage.removeItem("token");
     setIsAuthenticated(false);
-    localStorage.removeItem('isAuthenticated');
   };
 
+  // Loader while checking auth state
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -49,6 +49,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Login Route */}
             <Route
               path="/login"
               element={
@@ -59,6 +60,8 @@ const App = () => {
                 )
               }
             />
+
+            {/* Dashboard (Protected) */}
             <Route
               path="/dashboard"
               element={
@@ -69,12 +72,16 @@ const App = () => {
                 )
               }
             />
+
+            {/* Default Redirect */}
             <Route
               path="/"
               element={
                 <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />
               }
             />
+
+            {/* 404 Fallback */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

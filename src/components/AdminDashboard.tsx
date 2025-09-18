@@ -15,12 +15,12 @@ import {
 } from 'lucide-react';
 
 interface Lead {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   phone: string;
   message: string;
-  timestamp: Date;
+  createdAt: string;
   status: 'new' | 'contacted' | 'converted';
 }
 
@@ -28,52 +28,30 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api/admin";
+
 const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
 
-  // Sample data - in real app this would come from API
+  // ✅ Fetch leads from backend
   useEffect(() => {
-    const sampleLeads: Lead[] = [
-      {
-        id: '1',
-        name: 'John Smith',
-        email: 'john.smith@example.com',
-        phone: '+1 (555) 123-4567',
-        message: 'Interested in your product pricing',
-        timestamp: new Date(Date.now() - 3600000),
-        status: 'new'
-      },
-      {
-        id: '2',
-        name: 'Sarah Johnson',
-        email: 'sarah.j@example.com',
-        phone: '+1 (555) 987-6543',
-        message: 'Need more information about your services',
-        timestamp: new Date(Date.now() - 7200000),
-        status: 'contacted'
-      },
-      {
-        id: '3',
-        name: 'Mike Davis',
-        email: 'mike.davis@company.com',
-        phone: '+1 (555) 456-7890',
-        message: 'Looking for enterprise solutions',
-        timestamp: new Date(Date.now() - 10800000),
-        status: 'new'
-      },
-      {
-        id: '4',
-        name: 'Emily Chen',
-        email: 'emily.chen@startup.io',
-        phone: '+1 (555) 321-0987',
-        message: 'Demo request for our team',
-        timestamp: new Date(Date.now() - 14400000),
-        status: 'converted'
+    const fetchLeads = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/leads`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setLeads(data.leads);
+        }
+      } catch (err) {
+        console.error("Error fetching leads:", err);
       }
-    ];
-    setLeads(sampleLeads);
+    };
+    fetchLeads();
   }, []);
 
   const stats = {
@@ -88,22 +66,48 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     setShowMessageModal(true);
   };
 
-  const handleExportLeads = () => {
-    // In real app, this would trigger CSV/Excel download
-    const csvContent = [
-      'Name,Email,Phone,Message,Date,Status',
-      ...leads.map(lead => 
-        `${lead.name},${lead.email},${lead.phone},"${lead.message}",${lead.timestamp.toLocaleString()},${lead.status}`
-      )
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'leads-export.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
+  // ✅ Update lead status (backend + frontend)
+  const handleUpdateStatus = async (leadId: string, status: 'new' | 'contacted' | 'converted') => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/leads/${leadId}`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLeads(prev =>
+          prev.map(lead =>
+            lead._id === leadId ? { ...lead, status } : lead
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error updating lead:", err);
+    }
+  };
+
+  // ✅ Export via backend
+  const handleExportLeads = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/leads/export`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "leads-export.csv";
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+    }
   };
 
   return (
@@ -216,15 +220,17 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
           </CardHeader>
           <CardContent className="p-0">
             <LeadTable 
-              leads={leads} 
+              leads={leads.map(l => ({
+                id: l._id,
+                name: l.name,
+                email: l.email,
+                phone: l.phone,
+                message: l.message,
+                timestamp: new Date(l.createdAt),
+                status: l.status
+              }))} 
               onSendMessage={handleSendMessage}
-              onUpdateStatus={(leadId, status) => {
-                setLeads(prev => 
-                  prev.map(lead => 
-                    lead.id === leadId ? { ...lead, status } : lead
-                  )
-                );
-              }}
+              onUpdateStatus={handleUpdateStatus}
             />
           </CardContent>
         </Card>
@@ -239,13 +245,8 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
             setSelectedLead(null);
           }}
           onSent={() => {
-            // Update lead status to contacted
             if (selectedLead) {
-              setLeads(prev => 
-                prev.map(lead => 
-                  lead.id === selectedLead.id ? { ...lead, status: 'contacted' } : lead
-                )
-              );
+              handleUpdateStatus(selectedLead._id, "contacted");
             }
             setShowMessageModal(false);
             setSelectedLead(null);
@@ -257,3 +258,4 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 };
 
 export default AdminDashboard;
+    
