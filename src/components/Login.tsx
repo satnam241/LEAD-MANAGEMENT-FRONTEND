@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail, Building2 } from "lucide-react";
-import {jwtDecode} from "jwt-decode"; // Note the correct import
+import { jwtDecode } from "jwt-decode";
 
 interface LoginProps {
   onLogin: (token: string) => void;
@@ -15,7 +15,7 @@ interface LoginProps {
 interface JWTPayload {
   id: string;
   role: string;
-  exp: number; // JWT always has exp as number
+  exp: number;
 }
 
 const Login = ({ onLogin }: LoginProps) => {
@@ -24,15 +24,16 @@ const Login = ({ onLogin }: LoginProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const logout = () => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token"); // 🔥 sessionStorage
     toast({
       title: "Session Expired",
       description: "Please login again",
       variant: "destructive",
     });
-    navigate("/login");
+    navigate("/"); // back to login
   };
 
   const scheduleAutoLogout = (token: string) => {
@@ -43,7 +44,8 @@ const Login = ({ onLogin }: LoginProps) => {
       if (expiresIn <= 0) {
         logout();
       } else {
-        setTimeout(() => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => {
           logout();
         }, expiresIn);
       }
@@ -53,12 +55,14 @@ const Login = ({ onLogin }: LoginProps) => {
     }
   };
 
-  // On page load, check token
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (token) {
       scheduleAutoLogout(token);
     }
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,15 +79,14 @@ const Login = ({ onLogin }: LoginProps) => {
       const data = await res.json();
 
       if (data.success && data.token) {
-        localStorage.setItem("token", data.token);
-        onLogin(data.token);
+        onLogin(data.token); // 🔥 parent (App.tsx) will store in sessionStorage
 
         toast({
           title: "Login Successful",
           description: "Welcome to the Lead Management Dashboard",
         });
 
-        scheduleAutoLogout(data.token); // Schedule auto logout
+        scheduleAutoLogout(data.token);
         navigate("/dashboard");
       } else {
         toast({
@@ -114,15 +117,15 @@ const Login = ({ onLogin }: LoginProps) => {
           <CardTitle className="text-2xl font-bold text-center">
             Lead Management
           </CardTitle>
-          <p className="text-gray-500 text-center">Sign in to access your dashboard</p>
+          <p className="text-gray-500 text-center">
+            Sign in to access your dashboard
+          </p>
         </CardHeader>
 
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
-              </Label>
+              <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -138,9 +141,7 @@ const Login = ({ onLogin }: LoginProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">
-                Password
-              </Label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -157,7 +158,7 @@ const Login = ({ onLogin }: LoginProps) => {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90 transition-opacity text-white"
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90 text-white"
               disabled={loading}
             >
               {loading ? "Signing in..." : "Sign In"}

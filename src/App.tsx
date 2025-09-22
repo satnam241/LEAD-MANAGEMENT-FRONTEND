@@ -21,42 +21,41 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Check token validity on load
+  // ✅ Check token validity on load
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token"); // 🔥 sessionStorage instead of localStorage
     if (token) {
       try {
         const decoded: JWTPayload = jwtDecode(token);
 
-        // Check expiry
         if (decoded.exp * 1000 > Date.now()) {
           setIsAuthenticated(true);
         } else {
-          localStorage.removeItem("token");
+          sessionStorage.removeItem("token");
           setIsAuthenticated(false);
         }
       } catch (err) {
         console.error("Invalid token:", err);
-        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
         setIsAuthenticated(false);
       }
     }
     setLoading(false);
   }, []);
 
-  // When login succeeds in Login.tsx
+  // ✅ When login succeeds
   const handleLogin = (token: string) => {
-    localStorage.setItem("token", token);
+    sessionStorage.setItem("token", token); // 🔥 sessionStorage
     setIsAuthenticated(true);
   };
 
-  // Logout → clear token + reset state
+  // ✅ Logout
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     setIsAuthenticated(false);
   };
 
-  // Loader while checking auth state
+  // ✅ Loader while checking auth state
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -72,9 +71,9 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Login Route */}
+            {/* ✅ Home/Login Route */}
             <Route
-              path="/login"
+              path="/"
               element={
                 !isAuthenticated ? (
                   <Login onLogin={handleLogin} />
@@ -84,26 +83,15 @@ const App = () => {
               }
             />
 
-            {/* Dashboard (Protected) */}
+            {/* ✅ Protected Dashboard */}
             <Route
               path="/dashboard"
               element={
                 isAuthenticated ? (
                   <AdminDashboard onLogout={handleLogout} />
                 ) : (
-                  <Navigate to="/login" replace />
+                  <Navigate to="/" replace />
                 )
-              }
-            />
-
-            {/* Default Redirect */}
-            <Route
-              path="/"
-              element={
-                <Navigate
-                  to={isAuthenticated ? "/dashboard" : "/login"}
-                  replace
-                />
               }
             />
 
