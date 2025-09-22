@@ -18,15 +18,7 @@ import {
 import { MessageCircle, Phone, Mail, Calendar } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
-interface Lead {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  message: string;
-  timestamp: Date;
-  status: 'new' | 'contacted' | 'converted';
-}
+import { Lead } from '@/utils/API';
 
 interface LeadTableProps {
   leads: Lead[];
@@ -84,21 +76,21 @@ const LeadTable = ({ leads, onSendMessage, onUpdateStatus }: LeadTableProps) => 
       <Table>
         <TableHeader>
           <TableRow className="border-b">
-            <TableHead className="font-semibold">Name</TableHead>
-            <TableHead className="font-semibold">Contact</TableHead>
-            <TableHead className="font-semibold">Message</TableHead>
-            <TableHead className="font-semibold">Date</TableHead>
-            <TableHead className="font-semibold">Status</TableHead>
-            <TableHead className="font-semibold text-right">Actions</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead>Message</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {leads.map((lead) => (
             <TableRow key={lead.id} className="hover:bg-muted/50">
-              <TableCell>
-                <div className="font-medium text-foreground">{lead.name}</div>
-              </TableCell>
-              
+               <TableCell>
+    <div className="font-medium">{lead.fullName}</div>
+  </TableCell>
+
               <TableCell>
                 <div className="space-y-1">
                   <div className="flex items-center text-sm text-muted-foreground">
@@ -111,30 +103,34 @@ const LeadTable = ({ leads, onSendMessage, onUpdateStatus }: LeadTableProps) => 
                   </div>
                 </div>
               </TableCell>
-              
+
               <TableCell>
-                <div className="max-w-xs">
-                  <p className="text-sm text-foreground truncate" title={lead.message}>
-                    {lead.message}
-                  </p>
-                </div>
+                <p className="text-sm truncate max-w-xs" title={lead.message}>
+                  {lead.message}
+                </p>
               </TableCell>
-              
+
               <TableCell>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Calendar className="h-3 w-3 mr-1" />
-                  {formatDistanceToNow(lead.timestamp, { addSuffix: true })}
+                  {lead.createdAt
+                    ? formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })
+                    : 'N/A'}
                 </div>
               </TableCell>
-              
+
               <TableCell>
-                <Select
-                  value={lead.status}
-                  onValueChange={(value: Lead['status']) => onUpdateStatus(lead.id, value)}
-                >
+              <Select
+  value={lead.status}
+  onValueChange={(value: Lead['status']) => onUpdateStatus(lead._id, value)} // 👈 fix here
+>
+
                   <SelectTrigger className="w-32">
                     <SelectValue>
-                      <Badge variant={getStatusBadgeVariant(lead.status)} className={getStatusColor(lead.status)}>
+                      <Badge
+                        variant={getStatusBadgeVariant(lead.status)}
+                        className={getStatusColor(lead.status)}
+                      >
                         {lead.status}
                       </Badge>
                     </SelectValue>
@@ -146,7 +142,7 @@ const LeadTable = ({ leads, onSendMessage, onUpdateStatus }: LeadTableProps) => 
                   </SelectContent>
                 </Select>
               </TableCell>
-              
+
               <TableCell className="text-right">
                 <Button
                   onClick={() => onSendMessage(lead)}

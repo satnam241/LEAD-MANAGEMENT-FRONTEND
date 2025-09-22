@@ -1,34 +1,30 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import LeadTable from './LeadTable';
-import SendMessageModal from './SendMessageModal';
-import { 
-  Users, 
-  MessageCircle, 
-  TrendingUp, 
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import LeadTable from "./LeadTable";
+import SendMessageModal from "./SendMessageModal";
+import {
+  Users,
+  MessageCircle,
+  TrendingUp,
   Download,
   LogOut,
   Building2,
-  Clock
-} from 'lucide-react';
+  Clock,
+} from "lucide-react";
 
-interface Lead {
-  _id: string;
-  name: string;
-  email: string;
-  phone: string;
-  message: string;
-  createdAt: string;
-  status: 'new' | 'contacted' | 'converted';
-}
+// Import API utils
+import {
+  fetchLeads,
+  updateLead,
+  exportLeadsToCSV,
+  Lead,
+} from "@/utils/api";
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api/admin";
 
 const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -37,28 +33,22 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 
   // ✅ Fetch leads from backend
   useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${API_BASE}/leads`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.success) {
-          setLeads(data.leads);
-        }
-      } catch (err) {
-        console.error("Error fetching leads:", err);
-      }
+    const getLeads = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const data = await fetchLeads(token);
+      setLeads(data);
     };
-    fetchLeads();
+
+    getLeads();
   }, []);
 
   const stats = {
     totalLeads: leads.length,
-    newLeads: leads.filter(lead => lead.status === 'new').length,
-    contacted: leads.filter(lead => lead.status === 'contacted').length,
-    converted: leads.filter(lead => lead.status === 'converted').length
+    newLeads: leads.filter((lead) => lead.status === "new").length,
+    contacted: leads.filter((lead) => lead.status === "contacted").length,
+    converted: leads.filter((lead) => lead.status === "converted").length,
   };
 
   const handleSendMessage = (lead: Lead) => {
@@ -66,47 +56,42 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     setShowMessageModal(true);
   };
 
-  // ✅ Update lead status (backend + frontend)
-  const handleUpdateStatus = async (leadId: string, status: 'new' | 'contacted' | 'converted') => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/leads/${leadId}`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ status }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setLeads(prev =>
-          prev.map(lead =>
-            lead._id === leadId ? { ...lead, status } : lead
-          )
-        );
-      }
-    } catch (err) {
-      console.error("Error updating lead:", err);
+  // ✅ Update lead status
+  const handleUpdateStatus = async (
+    leadId: string,
+    status: "new" | "contacted" | "converted"
+  ) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const success = await updateLead(leadId, { status }, token); // 👈 fixed
+    if (success) {
+      setLeads((prev) =>
+        prev.map((lead) =>
+          lead._id === leadId ? { ...lead, status } : lead // 👈 fixed
+        )
+      );
     }
   };
 
-  // ✅ Export via backend
+  // ✅ Export Leads (frontend CSV download)
   const handleExportLeads = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/leads/export`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const blob = await res.blob();
+      const csvContent = await exportLeadsToCSV(leads);
+      const blob = new Blob([csvContent], { type: "text/csv" });
       const url = window.URL.createObjectURL(blob);
+
       const a = document.createElement("a");
       a.href = url;
       a.download = "leads-export.csv";
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
+
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Export error:", err);
+      alert("Failed to export leads. Please try again.");
     }
   };
 
@@ -120,11 +105,15 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
               <Building2 className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold gradient-text">Lead Management</h1>
-              <p className="text-sm text-muted-foreground">Modern Admin Dashboard</p>
+              <h1 className="text-2xl font-bold gradient-text">
+                Lead Management
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Modern Admin Dashboard
+              </p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <Button
               onClick={handleExportLeads}
@@ -135,7 +124,12 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button onClick={onLogout} variant="outline" size="sm" className="border-border/50 hover:bg-accent/50">
+            <Button
+              onClick={onLogout}
+              variant="outline"
+              size="sm"
+              className="border-border/50 hover:bg-accent/50"
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
@@ -161,7 +155,9 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                 <p className="text-sm text-white/80 font-medium uppercase tracking-wide">
                   TOTAL LEADS
                 </p>
-                <div className="text-3xl font-bold text-white mt-2">{stats.totalLeads}</div>
+                <div className="text-3xl font-bold text-white mt-2">
+                  {stats.totalLeads}
+                </div>
                 <p className="text-xs text-white/60 mt-1">All time leads</p>
               </div>
               <Users className="h-8 w-8 text-white/80" />
@@ -174,7 +170,9 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                 <p className="text-sm text-white/80 font-medium uppercase tracking-wide">
                   NEW LEADS
                 </p>
-                <div className="text-3xl font-bold text-white mt-2">{stats.newLeads}</div>
+                <div className="text-3xl font-bold text-white mt-2">
+                  {stats.newLeads}
+                </div>
                 <p className="text-xs text-white/60 mt-1">Require attention</p>
               </div>
               <Clock className="h-8 w-8 text-white/80" />
@@ -187,7 +185,9 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                 <p className="text-sm text-white/80 font-medium uppercase tracking-wide">
                   CONTACTED
                 </p>
-                <div className="text-3xl font-bold text-white mt-2">{stats.contacted}</div>
+                <div className="text-3xl font-bold text-white mt-2">
+                  {stats.contacted}
+                </div>
                 <p className="text-xs text-white/60 mt-1">In progress</p>
               </div>
               <MessageCircle className="h-8 w-8 text-white/80" />
@@ -200,7 +200,9 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                 <p className="text-sm text-white/80 font-medium uppercase tracking-wide">
                   CONVERTED
                 </p>
-                <div className="text-3xl font-bold text-white mt-2">{stats.converted}</div>
+                <div className="text-3xl font-bold text-white mt-2">
+                  {stats.converted}
+                </div>
                 <p className="text-xs text-white/60 mt-1">Success rate</p>
               </div>
               <TrendingUp className="h-8 w-8 text-white/80" />
@@ -212,23 +214,17 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
         <Card className="data-table">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold">Recent Leads</CardTitle>
+              <CardTitle className="text-lg font-semibold">
+                Recent Leads
+              </CardTitle>
               <Badge variant="secondary" className="ml-auto">
                 {leads.length} leads
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <LeadTable 
-              leads={leads.map(l => ({
-                id: l._id,
-                name: l.name,
-                email: l.email,
-                phone: l.phone,
-                message: l.message,
-                timestamp: new Date(l.createdAt),
-                status: l.status
-              }))} 
+            <LeadTable
+              leads={leads}
               onSendMessage={handleSendMessage}
               onUpdateStatus={handleUpdateStatus}
             />
@@ -246,7 +242,7 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
           }}
           onSent={() => {
             if (selectedLead) {
-              handleUpdateStatus(selectedLead._id, "contacted");
+              handleUpdateStatus(selectedLead._id, "contacted"); // 👈 fixed
             }
             setShowMessageModal(false);
             setSelectedLead(null);
@@ -258,4 +254,3 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 };
 
 export default AdminDashboard;
-    

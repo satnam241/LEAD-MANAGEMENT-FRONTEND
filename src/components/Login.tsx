@@ -1,14 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail, Building2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import {jwtDecode} from "jwt-decode"; // Note the correct import
 
 interface LoginProps {
   onLogin: (token: string) => void;
+}
+
+interface JWTPayload {
+  id: string;
+  role: string;
+  exp: number; // JWT always has exp as number
 }
 
 const Login = ({ onLogin }: LoginProps) => {
@@ -17,6 +24,42 @@ const Login = ({ onLogin }: LoginProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    toast({
+      title: "Session Expired",
+      description: "Please login again",
+      variant: "destructive",
+    });
+    navigate("/login");
+  };
+
+  const scheduleAutoLogout = (token: string) => {
+    try {
+      const decoded: JWTPayload = jwtDecode(token);
+      const expiresIn = decoded.exp * 1000 - Date.now();
+
+      if (expiresIn <= 0) {
+        logout();
+      } else {
+        setTimeout(() => {
+          logout();
+        }, expiresIn);
+      }
+    } catch (err) {
+      console.error("JWT decode error:", err);
+      logout();
+    }
+  };
+
+  // On page load, check token
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      scheduleAutoLogout(token);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +74,7 @@ const Login = ({ onLogin }: LoginProps) => {
 
       const data = await res.json();
 
-      if (data.success) {
+      if (data.success && data.token) {
         localStorage.setItem("token", data.token);
         onLogin(data.token);
 
@@ -40,7 +83,8 @@ const Login = ({ onLogin }: LoginProps) => {
           description: "Welcome to the Lead Management Dashboard",
         });
 
-        navigate("/dashboard"); // ✅ redirect after login
+        scheduleAutoLogout(data.token); // Schedule auto logout
+        navigate("/dashboard");
       } else {
         toast({
           title: "Login Failed",
@@ -61,18 +105,16 @@ const Login = ({ onLogin }: LoginProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <Card className="w-full max-w-md card-shadow-lg">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-4 pb-6">
-          <div className="flex items-center justify-center w-16 h-16 mx-auto gradient-primary rounded-2xl">
-            <Building2 className="h-8 w-8 text-primary-foreground" />
+          <div className="flex items-center justify-center w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl">
+            <Building2 className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold text-center text-foreground">
+          <CardTitle className="text-2xl font-bold text-center">
             Lead Management
           </CardTitle>
-          <p className="text-muted-foreground text-center">
-            Sign in to access your dashboard
-          </p>
+          <p className="text-gray-500 text-center">Sign in to access your dashboard</p>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -82,7 +124,7 @@ const Login = ({ onLogin }: LoginProps) => {
                 Email
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   id="email"
                   type="email"
@@ -100,7 +142,7 @@ const Login = ({ onLogin }: LoginProps) => {
                 Password
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   id="password"
                   type="password"
@@ -115,7 +157,7 @@ const Login = ({ onLogin }: LoginProps) => {
 
             <Button
               type="submit"
-              className="w-full gradient-primary hover:opacity-90 transition-opacity"
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90 transition-opacity text-white"
               disabled={loading}
             >
               {loading ? "Signing in..." : "Sign In"}

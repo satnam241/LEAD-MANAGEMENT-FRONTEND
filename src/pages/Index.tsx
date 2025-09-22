@@ -7,7 +7,7 @@ import { Building2, Users, MessageCircle, TrendingUp, ArrowRight } from "lucide-
 const Index = () => {
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
+      
       <section className="relative overflow-hidden">
         <div className="container mx-auto px-6 py-16 text-center">
           <div className="flex items-center justify-center w-20 h-20 mx-auto mb-8 gradient-primary rounded-3xl">
