@@ -14,35 +14,33 @@ import {
   Clock,
 } from "lucide-react";
 
-// Import API utils
-import {
-  fetchLeads,
-  updateLead,
-  exportLeadsToCSV,
-  Lead,
-} from "@/utils/api";
+import { fetchLeads, updateLead, exportLeadsToCSV, Lead, getAdminProfile, AdminProfile } from "@/utils/api";
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
 const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
+  const [admin, setAdmin] = useState<AdminProfile | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
-
-  // ✅ Fetch leads from backend
+  
   useEffect(() => {
-    const getLeads = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const data = await fetchLeads(token);
-      setLeads(data);
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+  
+    const getData = async () => {
+      const leadsData = await fetchLeads(token);
+      setLeads(leadsData);
+  
+      const adminData = await getAdminProfile(token);
+      setAdmin(adminData);
     };
-
-    getLeads();
+  
+    getData();
   }, []);
+  
 
   const stats = {
     totalLeads: leads.length,
@@ -56,25 +54,23 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     setShowMessageModal(true);
   };
 
-  // ✅ Update lead status
   const handleUpdateStatus = async (
     leadId: string,
     status: "new" | "contacted" | "converted"
   ) => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) return;
 
-    const success = await updateLead(leadId, { status }, token); // 👈 fixed
+    const success = await updateLead(leadId, { status }, token); 
     if (success) {
       setLeads((prev) =>
         prev.map((lead) =>
-          lead._id === leadId ? { ...lead, status } : lead // 👈 fixed
+          lead._id === leadId ? { ...lead, status } : lead 
         )
       );
     }
   };
 
-  // ✅ Export Leads (frontend CSV download)
   const handleExportLeads = async () => {
     try {
       const csvContent = await exportLeadsToCSV(leads);
@@ -141,9 +137,10 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
       <main className="container mx-auto px-6 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h2 className="text-4xl font-bold text-foreground mb-2">
-            Hi, Admin 👋
-          </h2>
+        <h2 className="text-4xl font-bold text-foreground mb-2">
+  Hi, { admin?.email || "Admin"} 👋
+</h2>
+
           <p className="text-muted-foreground">Welcome to Lead Management</p>
         </div>
 

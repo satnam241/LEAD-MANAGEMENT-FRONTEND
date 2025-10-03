@@ -76,7 +76,6 @@ const SendMessageModal = ({ lead, onClose, onSent }: SendMessageModalProps) => {
           </div>
         </DialogHeader>
 
-        {/* Lead Info */}
         <div className="bg-muted/50 rounded-lg p-4 space-y-3">
           <div className="flex items-center space-x-2">
             <User className="h-4 w-4 text-muted-foreground" />
@@ -103,7 +102,6 @@ const SendMessageModal = ({ lead, onClose, onSent }: SendMessageModalProps) => {
           )}
         </div>
 
-        {/* Message Form */}
         <div className="space-y-4 mt-4">
           <Label className="block text-sm font-medium">Choose Message Type</Label>
           <div className="flex space-x-3">

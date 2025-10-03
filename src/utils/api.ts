@@ -14,7 +14,6 @@ export interface Lead {
   createdAt: string;
 }
 
-
 export interface AuthCredentials {
   email: string;
   password: string;
@@ -25,6 +24,12 @@ export interface DailyStats {
   new: number;
   contacted: number;
   converted: number;
+}
+
+export interface AdminProfile {
+  _id: string;
+  email: string;
+  name?: string;
 }
 
 // -------------------------
@@ -68,13 +73,53 @@ export const signupAdmin = async (
 };
 
 // -------------------------
-// Lead Management (Admin)
+// Forgot / Reset Password
 // -------------------------
+export const forgotPassword = async (
+  email: string
+): Promise<{ success: boolean; message?: string; error?: string }> => {
+  try {
+    const res = await fetch(`${API_BASE}/admin/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    return await res.json();
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return { success: false, error: "Server error" };
+  }
+};
+
+export const resetPassword = async (
+  token: string,
+  newPassword: string
+): Promise<{ success: boolean; message?: string; error?: string }> => {
+  try {
+    const res = await fetch(`${API_BASE}/admin/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, password: newPassword }),
+    });
+    return await res.json();
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return { success: false, error: "Server error" };
+  }
+};
+
+// -------------------------
+// Lead Management (Admin)
 export const fetchLeads = async (token: string): Promise<Lead[]> => {
   try {
     const res = await fetch(`${API_BASE}/admin/leads`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+
+    if (res.status === 401) {
+      sessionStorage.removeItem("token");
+      throw new Error("Unauthorized. Please login again.");
+    }
 
     if (!res.ok) throw new Error("Failed to fetch leads");
 
@@ -85,7 +130,6 @@ export const fetchLeads = async (token: string): Promise<Lead[]> => {
     return [];
   }
 };
-
 
 export const updateLead = async (
   leadId: string,
@@ -126,7 +170,6 @@ export const deleteLead = async (
 
 // -------------------------
 // Public Lead Submission
-// -------------------------
 export const createLeadPublic = async (
   leadData: Omit<Lead, "_id" | "createdAt" | "status">
 ): Promise<{ success: boolean; lead?: Lead }> => {
@@ -145,7 +188,6 @@ export const createLeadPublic = async (
 
 // -------------------------
 // Daily Stats (Admin)
-// -------------------------
 export const fetchDailyStats = async (
   token: string
 ): Promise<DailyStats | null> => {
@@ -163,7 +205,6 @@ export const fetchDailyStats = async (
 
 // -------------------------
 // Export Leads as CSV
-// -------------------------
 export const exportLeadsToCSV = (leads: Lead[]): string => {
   const headers = ["Name", "Email", "Phone", "Source", "Date", "Status"];
   const csvContent = [
@@ -185,7 +226,6 @@ export const exportLeadsToCSV = (leads: Lead[]): string => {
 
 // -------------------------
 // Send Message to Lead
-// -------------------------
 export const sendMessage = async (
   leadId: string,
   type: "email" | "whatsapp" | "both",
@@ -207,4 +247,21 @@ export const sendMessage = async (
   }
 
   return res.json();
+};
+
+export const getAdminProfile = async (
+  token: string
+): Promise<AdminProfile | null> => {
+  try {
+    const res = await fetch(`${API_BASE}/admin/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch admin profile");
+
+    return await res.json();
+  } catch (error) {
+    console.error("Fetch admin profile error:", error);
+    return null;
+  }
 };

@@ -4,10 +4,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode}from "jwt-decode";
 import Login from "./components/Login";
 import AdminDashboard from "./components/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import { toast } from "sonner";
 
 const queryClient = new QueryClient();
 
@@ -21,18 +22,17 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Check token validity on load
   useEffect(() => {
-    const token = sessionStorage.getItem("token"); // 🔥 sessionStorage instead of localStorage
+    const token = sessionStorage.getItem("token"); // ✅ sessionStorage
     if (token) {
       try {
         const decoded: JWTPayload = jwtDecode(token);
-
         if (decoded.exp * 1000 > Date.now()) {
           setIsAuthenticated(true);
         } else {
           sessionStorage.removeItem("token");
           setIsAuthenticated(false);
+          toast.error("Session expired. Please login again.");
         }
       } catch (err) {
         console.error("Invalid token:", err);
@@ -43,19 +43,17 @@ const App = () => {
     setLoading(false);
   }, []);
 
-  // ✅ When login succeeds
   const handleLogin = (token: string) => {
-    sessionStorage.setItem("token", token); // 🔥 sessionStorage
+    sessionStorage.setItem("token", token);
     setIsAuthenticated(true);
   };
 
-  // ✅ Logout
   const handleLogout = () => {
     sessionStorage.removeItem("token");
     setIsAuthenticated(false);
+    toast.success("Logged out successfully.");
   };
 
-  // ✅ Loader while checking auth state
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -71,7 +69,6 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* ✅ Home/Login Route */}
             <Route
               path="/"
               element={
@@ -82,8 +79,6 @@ const App = () => {
                 )
               }
             />
-
-            {/* ✅ Protected Dashboard */}
             <Route
               path="/dashboard"
               element={
@@ -94,8 +89,6 @@ const App = () => {
                 )
               }
             />
-
-            {/* 404 Fallback */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
