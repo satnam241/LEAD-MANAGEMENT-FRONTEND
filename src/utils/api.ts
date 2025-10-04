@@ -35,7 +35,7 @@ export interface AdminProfile {
 // -------------------------
 // API Base
 // -------------------------
-export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4520/api";
+//export const API_BASE = "http://localhost:4520/api";
 
 // -------------------------
 // Admin Authentication
@@ -44,7 +44,7 @@ export const loginAdmin = async (
   credentials: AuthCredentials
 ): Promise<{ success: boolean; token?: string; error?: string }> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/login`, {
+    const res = await fetch(`https://leads.bholebabainvestments.com/admin/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials),
@@ -60,7 +60,7 @@ export const signupAdmin = async (
   credentials: AuthCredentials
 ): Promise<{ success: boolean; token?: string; error?: string }> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/signup`, {
+    const res = await fetch(`https://leads.bholebabainvestments.com/admin/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials),
@@ -79,7 +79,7 @@ export const forgotPassword = async (
   email: string
 ): Promise<{ success: boolean; message?: string; error?: string }> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/forgot-password`, {
+    const res = await fetch(`https://leads.bholebabainvestments.com/admin/forgot-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -96,7 +96,7 @@ export const resetPassword = async (
   newPassword: string
 ): Promise<{ success: boolean; message?: string; error?: string }> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/reset-password`, {
+    const res = await fetch(`https://leads.bholebabainvestments.com/admin/reset-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, password: newPassword }),
@@ -112,7 +112,7 @@ export const resetPassword = async (
 // Lead Management (Admin)
 export const fetchLeads = async (token: string): Promise<Lead[]> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/leads`, {
+    const res = await fetch(`https://leads.bholebabainvestments.com/admin/leads`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -137,7 +137,7 @@ export const updateLead = async (
   token: string
 ): Promise<boolean> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/leads/${leadId}`, {
+    const res = await fetch(`https://leads.bholebabainvestments.com/admin/leads/${leadId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -157,7 +157,7 @@ export const deleteLead = async (
   token: string
 ): Promise<boolean> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/leads/${leadId}`, {
+    const res = await fetch(`https://leads.bholebabainvestments.com/admin/leads/${leadId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -174,7 +174,7 @@ export const createLeadPublic = async (
   leadData: Omit<Lead, "_id" | "createdAt" | "status">
 ): Promise<{ success: boolean; lead?: Lead }> => {
   try {
-    const res = await fetch(`${API_BASE}/leads/routes`, {
+    const res = await fetch(`https://leads.bholebabainvestments.com/leads/routes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(leadData),
@@ -192,7 +192,7 @@ export const fetchDailyStats = async (
   token: string
 ): Promise<DailyStats | null> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/stats/daily`, {
+    const res = await fetch(`https://leads.bholebabainvestments.com/admin/stats/daily`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error("Failed to fetch stats");
@@ -232,7 +232,7 @@ export const sendMessage = async (
   message: string,
   token: string
 ) => {
-  const res = await fetch(`${API_BASE}/leads/${leadId}/send-message`, {
+  const res = await fetch(`https://leads.bholebabainvestments.com/leads/${leadId}/send-message`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -253,7 +253,7 @@ export const getAdminProfile = async (
   token: string
 ): Promise<AdminProfile | null> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/me`, {
+    const res = await fetch(`https://leads.bholebabainvestments.com/admin/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
