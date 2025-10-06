@@ -110,9 +110,17 @@ export const resetPassword = async (
 
 // -------------------------
 // Lead Management (Admin)
-export const fetchLeads = async (token: string): Promise<Lead[]> => {
+export const fetchLeads = async (token: string, page: number = 1): Promise<{
+  leads: Lead[];
+  totalPages: number;
+  page: number;
+  totalLeads: number;
+  newLeadsCount: number;
+  contactedCount: number;
+  convertedCount: number;
+}> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/leads`, {
+    const res = await fetch(`${API_BASE}/admin/leads?page=${page}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -124,12 +132,22 @@ export const fetchLeads = async (token: string): Promise<Lead[]> => {
     if (!res.ok) throw new Error("Failed to fetch leads");
 
     const data = await res.json();
-    return data.leads || [];
+    return {
+      leads: data.leads || [],
+      totalPages: data.totalPages || 1,
+      page: data.page || 1,
+      totalLeads: data.totalLeads || 0,
+      newLeadsCount: data.newLeadsCount || 0,
+      contactedCount: data.contactedCount || 0,
+      convertedCount: data.convertedCount || 0,
+    };
   } catch (error) {
     console.error("Fetch leads error:", error);
-    return [];
+    return { leads: [], totalPages: 1, page: 1, totalLeads: 0, newLeadsCount: 0, contactedCount: 0, convertedCount: 0 };
   }
 };
+
+
 
 export const updateLead = async (
   leadId: string,
