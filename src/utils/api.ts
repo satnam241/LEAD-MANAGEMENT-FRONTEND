@@ -110,7 +110,10 @@ export const resetPassword = async (
 
 // -------------------------
 // Lead Management (Admin)
-export const fetchLeads = async (token: string, page: number = 1): Promise<{
+export const fetchLeads = async (
+  token: string,
+  page: number = 1
+): Promise<{
   leads: Lead[];
   totalPages: number;
   page: number;
@@ -120,7 +123,7 @@ export const fetchLeads = async (token: string, page: number = 1): Promise<{
   convertedCount: number;
 }> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/leads?page=${page}`, {
+    const res = await fetch(`${API_BASE}/admin/leads?page=${page}&source=facebook`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -146,8 +149,6 @@ export const fetchLeads = async (token: string, page: number = 1): Promise<{
     return { leads: [], totalPages: 1, page: 1, totalLeads: 0, newLeadsCount: 0, contactedCount: 0, convertedCount: 0 };
   }
 };
-
-
 
 export const updateLead = async (
   leadId: string,
@@ -223,18 +224,36 @@ export const fetchDailyStats = async (
 
 // -------------------------
 // Export Leads as CSV
+
 export const exportLeadsToCSV = (leads: Lead[]): string => {
-  const headers = ["Name", "Email", "Phone", "Source", "Date", "Status"];
+  // Headers according to your model
+  const headers = [
+    "Full Name",
+    "Email",
+    "Phone",
+    "Phone Verified",
+    "Planned Purchase Time",
+    "Budget",
+    "Message",
+    "Source",
+    "Status",
+    "Created At",
+  ];
+
   const csvContent = [
-    headers.join(","),
+    headers.join(","), // CSV header row
     ...leads.map((lead) =>
       [
         lead.fullName || "",
         lead.email || "",
         lead.phone || "",
-        lead.source,
+        lead.phoneVerified ? "Yes" : "No",
+        lead.whenAreYouPlanningToPurchase || "",
+        lead.whatIsYourBudget || "",
+        lead.message || "",
+        lead.source || "",
+        lead.status || "",
         new Date(lead.createdAt).toISOString(),
-        lead.status,
       ].join(",")
     ),
   ].join("\n");
