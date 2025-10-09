@@ -8,11 +8,14 @@ export interface Lead {
   fullName?: string;
   email?: string;
   phone?: string;
+  message?: string;
   source: string;
   rawData?: any;
+  extraFields?: Record<string, any>;
   status: "new" | "contacted" | "converted";
   createdAt: string;
 }
+
 
 export interface AuthCredentials {
   email: string;
@@ -226,40 +229,46 @@ export const fetchDailyStats = async (
 // Export Leads as CSV
 
 export const exportLeadsToCSV = (leads: Lead[]): string => {
-  // Headers according to your model
-  const headers = [
+  // Default headers
+  const baseHeaders = [
     "Full Name",
     "Email",
     "Phone",
-    "Phone Verified",
-    "Planned Purchase Time",
-    "Budget",
-    "Message",
     "Source",
     "Status",
     "Created At",
   ];
 
+  // Collect all possible extra field keys
+  const extraKeys = Array.from(
+    new Set(
+      leads.flatMap((l) => (l.extraFields ? Object.keys(l.extraFields) : []))
+    )
+  );
+
+  const headers = [...baseHeaders, ...extraKeys];
+
   const csvContent = [
-    headers.join(","), // CSV header row
-    ...leads.map((lead) =>
-      [
+    headers.join(","),
+    ...leads.map((lead) => {
+      const extraValues = extraKeys.map(
+        (key) => (lead.extraFields && lead.extraFields[key]) || ""
+      );
+      return [
         lead.fullName || "",
         lead.email || "",
         lead.phone || "",
-        lead.phoneVerified ? "Yes" : "No",
-        lead.whenAreYouPlanningToPurchase || "",
-        lead.whatIsYourBudget || "",
-        lead.message || "",
         lead.source || "",
         lead.status || "",
         new Date(lead.createdAt).toISOString(),
-      ].join(",")
-    ),
+        ...extraValues,
+      ].join(",");
+    }),
   ].join("\n");
 
   return csvContent;
 };
+
 
 // -------------------------
 // Send Message to Lead
