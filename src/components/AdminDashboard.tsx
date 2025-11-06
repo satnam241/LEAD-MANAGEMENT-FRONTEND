@@ -4,6 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import LeadTable from "./LeadTable";
 import SendMessageModal from "./SendMessageModal";
+import AddLeadModal from "./AddLeadModal";
+import { useNavigate } from "react-router-dom";
+
+
 import {
   Users,
   MessageCircle,
@@ -14,7 +18,7 @@ import {
   Clock,
 } from "lucide-react";
 
-import { fetchLeads, updateLead, exportLeadsToCSV, Lead, getAdminProfile, AdminProfile } from "@/utils/api";
+import { fetchLeads, updateLead, exportLeadsToCSV, Lead, getAdminProfile, AdminProfile,deleteLead } from "@/utils/api";
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -25,7 +29,8 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
-
+  const [showAddLeadModal, setShowAddLeadModal] = useState(false);
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({
@@ -102,32 +107,60 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
       alert("Failed to export leads");
     }
   };
+  
 
+  const handleEditLead = (lead: Lead) => {
+    // Open a modal or navigate to edit form
+    console.log("Edit lead:", lead);
+  };
+  const handleDeleteLead = async (leadId: string) => {
+    if (!token) return;
+    if (!window.confirm("Are you sure you want to delete this lead?")) return;
+  
+    const success = await deleteLead(leadId, token);
+    if (success) {
+      setLeads((prev) => prev.filter((l) => l._id !== leadId));
+      alert("Lead deleted successfully!");
+    } else {
+      alert("Failed to delete lead.");
+    }
+  };
   return (
     <div className="min-h-screen">
       {/* Header */}
       <header className="glass-effect border-b backdrop-blur-xl">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center justify-center w-12 h-12 gradient-primary rounded-xl shadow-glow">
-              <Building2 className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold gradient-text">Lead Management</h1>
-              <p className="text-sm text-muted-foreground">Modern Admin Dashboard</p>
-            </div>
-          </div>
+  <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+    <div className="flex items-center space-x-4">
+      <div className="flex items-center justify-center w-12 h-12 gradient-primary rounded-xl shadow-glow">
+        <Building2 className="h-6 w-6 text-white" />
+      </div>
+      <div>
+        <h1 className="text-2xl font-bold gradient-text">Lead Management</h1>
+        <p className="text-sm text-muted-foreground">Modern Admin Dashboard</p>
+      </div>
+    </div>
 
-          <div className="flex items-center space-x-3">
-            <Button onClick={handleExportLeads} variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" /> Export
-            </Button>
-            <Button onClick={onLogout} variant="outline" size="sm">
-              <LogOut className="h-4 w-4 mr-2" /> Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="flex items-center space-x-3">
+      {/* 🧩 New Add Lead button */}
+      <Button
+        onClick={() => navigate("/add-lead")}
+        variant="default"
+        size="sm"
+        className="bg-blue-600 hover:bg-blue-700 text-white"
+      >
+        + Add Lead
+      </Button>
+
+      <Button onClick={handleExportLeads} variant="outline" size="sm">
+        <Download className="h-4 w-4 mr-2" /> Export
+      </Button>
+      <Button onClick={onLogout} variant="outline" size="sm">
+        <LogOut className="h-4 w-4 mr-2" /> Logout
+      </Button>
+    </div>
+  </div>
+</header>
+
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
@@ -185,17 +218,28 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
         </div>
 
         {/* Leads Table */}
-        <Card className="data-table">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold">Recent Leads</CardTitle>
-              <Badge variant="secondary" className="ml-auto">{stats.totalLeads} leads</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <LeadTable leads={leads} onSendMessage={handleSendMessage} onUpdateStatus={handleUpdateStatus} />
-          </CardContent>
-        </Card>
+<Card className="data-table">
+  <CardHeader>
+    <div className="flex items-center justify-between">
+      <CardTitle className="text-lg font-semibold">Recent Leads</CardTitle>
+      <Badge variant="secondary" className="ml-auto">
+        {stats.totalLeads} leads
+      </Badge>
+    </div>
+  </CardHeader>
+
+  <CardContent className="p-0">
+  <LeadTable
+  leads={leads}
+  onSendMessage={handleSendMessage}
+  onUpdateStatus={handleUpdateStatus}
+  onEditLead={handleEditLead}
+  onDeleteLead={handleDeleteLead}
+/>
+
+  </CardContent>
+</Card>
+
 
         {/* Pagination */}
         <div className="flex justify-between mt-2">
@@ -221,6 +265,8 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
         />
       )}
     </div>
+   
+  
   );
 };
 

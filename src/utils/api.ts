@@ -159,7 +159,7 @@ export const updateLead = async (
   token: string
 ): Promise<boolean> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/leads/${leadId}`, {
+    const res = await fetch(`${API_BASE}/leads/leads/${leadId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -192,21 +192,21 @@ export const deleteLead = async (
 
 // -------------------------
 // Public Lead Submission
-export const createLeadPublic = async (
-  leadData: Omit<Lead, "_id" | "createdAt" | "status">
-): Promise<{ success: boolean; lead?: Lead }> => {
+export const createLeadPublic = async (leadData) => {
   try {
-    const res = await fetch(`${API_BASE}/leads/routes`, {
+    const res = await fetch(`${API_BASE}/leads/leads`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(leadData),
     });
-    return await res.json();
+    const data = await res.json();
+    return { success: true, lead: data }; // 🔹 Wrap manually
   } catch (error) {
     console.error("Create lead error:", error);
     return { success: false };
   }
 };
+
 
 // -------------------------
 // Daily Stats (Admin)

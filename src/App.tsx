@@ -1,3 +1,4 @@
+// src/App.tsx
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import { useState, useEffect } from "react";
 import {jwtDecode}from "jwt-decode";
 import Login from "./components/Login";
 import AdminDashboard from "./components/AdminDashboard";
+import AddLeadPage from "./components/AddLeadPage";
 import NotFound from "./pages/NotFound";
 import { toast } from "sonner";
 
@@ -23,7 +25,7 @@ const App = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = sessionStorage.getItem("token"); // ✅ sessionStorage
+    const token = sessionStorage.getItem("token");
     if (token) {
       try {
         const decoded: JWTPayload = jwtDecode(token);
@@ -89,6 +91,7 @@ const App = () => {
                 )
               }
             />
+            <Route path="/add-lead" element={<AddLeadPage/>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
