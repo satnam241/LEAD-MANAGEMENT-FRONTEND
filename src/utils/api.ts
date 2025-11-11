@@ -126,32 +126,51 @@ export const fetchLeads = async (
   convertedCount: number;
 }> => {
   try {
-    const res = await fetch(`${API_BASE}/admin/leads?page=${page}&source=facebook`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(
+      `${API_BASE}/admin/leads?page=${page}&limit=10&source=facebook`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     if (res.status === 401) {
       sessionStorage.removeItem("token");
       throw new Error("Unauthorized. Please login again.");
     }
 
-    if (!res.ok) throw new Error("Failed to fetch leads");
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed to fetch leads: ${errText}`);
+    }
 
     const data = await res.json();
+
     return {
-      leads: data.leads || [],
-      totalPages: data.totalPages || 1,
-      page: data.page || 1,
-      totalLeads: data.totalLeads || 0,
-      newLeadsCount: data.newLeadsCount || 0,
-      contactedCount: data.contactedCount || 0,
-      convertedCount: data.convertedCount || 0,
+      leads: data.leads ?? [],
+      totalPages: data.totalPages ?? 1,
+      page: data.page ?? 1,
+      totalLeads: data.totalLeads ?? 0,
+      newLeadsCount: data.newLeadsCount ?? 0,
+      contactedCount: data.contactedCount ?? 0,
+      convertedCount: data.convertedCount ?? 0,
     };
   } catch (error) {
-    console.error("Fetch leads error:", error);
-    return { leads: [], totalPages: 1, page: 1, totalLeads: 0, newLeadsCount: 0, contactedCount: 0, convertedCount: 0 };
+    console.error("❌ Fetch leads error:", error);
+    return {
+      leads: [],
+      totalPages: 1,
+      page: 1,
+      totalLeads: 0,
+      newLeadsCount: 0,
+      contactedCount: 0,
+      convertedCount: 0,
+    };
   }
 };
+
 
 export const updateLead = async (
   leadId: string,
@@ -310,4 +329,39 @@ export const getAdminProfile = async (
     console.error("Fetch admin profile error:", error);
     return null;
   }
+};
+
+
+// src/services/activityService.ts
+
+export const fetchActivities = async (userId: string) => {
+  const res = await fetch(`${API_BASE}/activity/${userId}`);
+  if (!res.ok) throw new Error("Failed to fetch activities");
+  return res.json();
+};
+
+export const addActivity = async (data: { userId: string; adminId?: string; text: string }) => {
+  const res = await fetch(`${API_BASE}/activity`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to add activity");
+  return res.json();
+};
+
+export const updateActivity = async (id: string, text: string) => {
+  const res = await fetch(`${API_BASE}/activity/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error("Failed to update activity");
+  return res.json();
+};
+
+export const deleteActivity = async (id: string) => {
+  const res = await fetch(`${API_BASE}/activity/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete activity");
+  return res.json();
 };
