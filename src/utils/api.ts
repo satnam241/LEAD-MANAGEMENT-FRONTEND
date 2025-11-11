@@ -38,7 +38,7 @@ export interface AdminProfile {
 // -------------------------
 // API Base
 // -------------------------
-export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4520/api";
+export const API_BASE = import.meta.env.VITE_API_URL || "https://backend-leads-1l5y.onrender.com/api";
 
 // -------------------------
 // Admin Authentication
