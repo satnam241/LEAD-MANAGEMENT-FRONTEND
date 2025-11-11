@@ -1,13 +1,13 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 4620",
     "build": "tsc --project tsconfig.node.json && vite build",
-    "preview": "vite preview --port 3000",
-    "start": "serve -s dist -l ${PORT:-3000}"
+    "preview": "vite preview --port 4620",
+    "start": "node -e \"process.env.PORT=process.env.PORT||3000; require('serve/bin/serve.js')(['-s','dist','-l',process.env.PORT])\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
