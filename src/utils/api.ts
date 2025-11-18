@@ -14,6 +14,14 @@ export interface Lead {
   extraFields?: Record<string, any>;
   status: "new" | "contacted" | "converted";
   createdAt: string;
+
+  followUp?: {
+    date?: string | null;
+    recurrence?: string | null;
+    message?: string | null;
+    whatsappOptIn?: boolean;
+    active?: boolean;
+  };
 }
 
 
@@ -38,7 +46,7 @@ export interface AdminProfile {
 // -------------------------
 // API Base
 // -------------------------
-export const API_BASE = import.meta.env.VITE_API_URL || "https://backend-leads-1l5y.onrender.com/api";
+export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4520/api";
 
 // -------------------------
 // Admin Authentication
@@ -113,63 +121,87 @@ export const resetPassword = async (
 
 // -------------------------
 // Lead Management (Admin)
-export const fetchLeads = async (
-  token: string,
-  page: number = 1
-): Promise<{
-  leads: Lead[];
-  totalPages: number;
-  page: number;
-  totalLeads: number;
-  newLeadsCount: number;
-  contactedCount: number;
-  convertedCount: number;
-}> => {
-  try {
-    const res = await fetch(
-      `${API_BASE}/admin/leads?page=${page}&limit=10&source=facebook`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+
+    export const fetchLeads = async (
+      token: string,
+      page: number = 1,
+      limit: number = 10
+    ): Promise<{
+      leads: Lead[];
+      totalPages: number;
+      page: number;
+      totalLeads: number;
+      newLeadsCount: number;
+      contactedCount: number;
+      convertedCount: number;
+    }> => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/leads/leads?page=${page}&limit=${limit}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+    
+        if (res.status === 401) {
+          sessionStorage.removeItem("token");
+          throw new Error("Unauthorized. Please login again.");
+        }
+    
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Failed to fetch leads: ${errText}`);
+        }
+    
+        const data = await res.json();
+    
+        // -----------------------------------
+        // 🧠 SMART FUTURE-PROOF PARSING
+        // -----------------------------------
+    
+        const leads = Array.isArray(data)
+          ? data                     // backend returned ONLY array
+          : data.leads ?? data.data ?? [];  // backend returned object
+    
+        const totalLeads =
+          data.totalLeads ??
+          data.count ??
+          leads.length; // fallback
+    
+        const pageNumber = data.page ?? page;
+        const totalPages =
+          data.totalPages ??
+          Math.ceil(totalLeads / limit) ??
+          1;
+    
+        return {
+          leads,
+          totalPages,
+          page: pageNumber,
+          totalLeads,
+          newLeadsCount: data.newLeadsCount ?? 0,
+          contactedCount: data.contactedCount ?? 0,
+          convertedCount: data.convertedCount ?? 0,
+        };
+    
+      } catch (error) {
+        console.error("❌ Fetch leads error:", error);
+    
+        return {
+          leads: [],
+          totalPages: 1,
+          page: 1,
+          totalLeads: 0,
+          newLeadsCount: 0,
+          contactedCount: 0,
+          convertedCount: 0,
+        };
       }
-    );
-
-    if (res.status === 401) {
-      sessionStorage.removeItem("token");
-      throw new Error("Unauthorized. Please login again.");
-    }
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to fetch leads: ${errText}`);
-    }
-
-    const data = await res.json();
-
-    return {
-      leads: data.leads ?? [],
-      totalPages: data.totalPages ?? 1,
-      page: data.page ?? 1,
-      totalLeads: data.totalLeads ?? 0,
-      newLeadsCount: data.newLeadsCount ?? 0,
-      contactedCount: data.contactedCount ?? 0,
-      convertedCount: data.convertedCount ?? 0,
     };
-  } catch (error) {
-    console.error("❌ Fetch leads error:", error);
-    return {
-      leads: [],
-      totalPages: 1,
-      page: 1,
-      totalLeads: 0,
-      newLeadsCount: 0,
-      contactedCount: 0,
-      convertedCount: 0,
-    };
-  }
-};
+    
 
 
 export const updateLead = async (
@@ -297,7 +329,7 @@ export const sendMessage = async (
   message: string,
   token: string
 ) => {
-  const res = await fetch(`${API_BASE}/leads/${leadId}/send-message`, {
+  const res = await fetch(`${API_BASE}/messages/${leadId}/send-message`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -364,4 +396,44 @@ export const deleteActivity = async (id: string) => {
   const res = await fetch(`${API_BASE}/activity/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete activity");
   return res.json();
+};// -------------------------
+// IMPORT LEADS (FILE UPLOAD)
+// -------------------------
+export const importLeadsFile = async (
+  file: File,
+  token: string
+): Promise<{ success: boolean; message?: string; error?: string }> => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(`${API_BASE}/admin/import-leads`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`, 
+        // DO NOT SET Content-Type manually
+      },
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      return {
+        success: true,
+        message: data.message || "Leads imported successfully",
+      };
+    }
+
+    return {
+      success: false,
+      error: data.error || "Upload failed",
+    };
+  } catch (err) {
+    console.error("Import error:", err);
+    return {
+      success: false,
+      error: "Something went wrong",
+    };
+  }
 };

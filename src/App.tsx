@@ -9,6 +9,7 @@ import {jwtDecode}from "jwt-decode";
 import Login from "./components/Login";
 import AdminDashboard from "./components/AdminDashboard";
 import AddLeadPage from "./components/AddLeadPage";
+import ImportLeadsModal from "./components/ImportLeadsModal"
 import NotFound from "./pages/NotFound";
 import { toast } from "sonner";
 
@@ -92,6 +93,7 @@ const App = () => {
               }
             />
             <Route path="/add-lead" element={<AddLeadPage/>} />
+            <Route path="/import-file" element={<ImportLeadsModal/>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

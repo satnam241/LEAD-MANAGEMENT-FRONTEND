@@ -108,8 +108,8 @@ const AdminActivityModal = ({ userId, onClose }: Props) => {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-2xl shadow-xl w-[700px] max-h-[85vh] overflow-y-auto relative">
-        {/* ❌ Close Button */}
+     <div className="bg-[#1c1a23] p-6 rounded-2xl shadow-xl w-[700px] max-h-[85vh] overflow-y-auto relative">
+   {/* ❌ Close Button */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-500 hover:text-black"
