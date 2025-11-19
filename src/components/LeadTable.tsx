@@ -511,6 +511,622 @@
 // src/components/LeadTable.tsx
 
 
+// import { useEffect, useMemo, useState } from "react";
+// import { Badge } from "@/components/ui/badge";
+// import { Button } from "@/components/ui/button";
+// import {
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHead,
+//   TableHeader,
+//   TableRow,
+// } from "@/components/ui/table";
+// import {
+//   Select,
+//   SelectContent,
+//   SelectItem,
+//   SelectTrigger,
+//   SelectValue,
+//   SelectSeparator,
+// } from "@/components/ui/select";
+// import { Input } from "@/components/ui/input";
+// import {
+//   MessageCircle,
+//   Phone,
+//   Mail,
+//   Calendar,
+//   Edit,
+//   Trash,
+//   FileText,
+//   Filter,
+//   Clock,
+// } from "lucide-react";
+// import { formatDistanceToNow } from "date-fns";
+// import { Lead, updateLead,fetchLeads } from "@/utils/api";
+// import SendMessageModal from "@/components/SendMessageModal";
+// import AdminActivityModal from "@/components/AdminActivityModal";
+
+// interface LeadTableProps {
+//   leads: Lead[]; // incoming list from parent
+//   onSendMessage?: (lead: Lead) => void;
+//   onDeleteLead?: (leadId: string) => void;
+//   // Optional callback: parent can receive updated leads array (useful to recompute stats in parent)
+//   onLeadsChange?: (newLeads: Lead[]) => void;
+//   // Optional explicit API-backed status handler (if parent prefers to control)
+//   onUpdateStatus?: (leadId: string, status: Lead["status"]) => Promise<void> | void;
+//   // Optional: refresh stats helper to call parent to re-calc counts
+//   refreshStats?: () => void;
+// }
+
+// const LeadTable = ({
+//   leads: propLeads,
+//   onSendMessage,
+//   onDeleteLead,
+//   onLeadsChange,
+//   onUpdateStatus,
+//   refreshStats,
+// }: LeadTableProps) => {
+//   // Local copy so UI updates immediately without forcing parent update
+//   const [leads, setLeads] = useState<Lead[]>(propLeads ?? []);
+//   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+//   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+//   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+//   const [activityUserId, setActivityUserId] = useState<string | null>(null);
+//   const [loading, setLoading] = useState(false);
+
+//   // follow-up modal state
+//   const [followUpLead, setFollowUpLead] = useState<Lead | null>(null);
+
+//   // filters & pagination
+//   const [search, setSearch] = useState("");
+//   const [statusFilter, setStatusFilter] = useState("");
+//   const [startDate, setStartDate] = useState("");
+//   const [endDate, setEndDate] = useState("");
+
+//   const [page, setPage] = useState(1);
+//   const pageSize = 15;
+
+//   // Sync local when parent prop changes
+//   useEffect(() => {
+//     setLeads(propLeads ?? []);
+//     setPage(1);
+//   }, [propLeads]);
+
+//   const getStatusBadgeVariant = (status?: Lead["status"]) => {
+//     switch (status) {
+//       case "new":
+//         return "default";
+//       case "contacted":
+//         return "secondary";
+//       case "converted":
+//         return "default";
+//       default:
+//         return "default";
+//     }
+//   };
+// // filtered leads (frontend)
+// const filteredLeads = useMemo(() => {
+//   return leads.filter((lead) => {
+//     const q = search.trim().toLowerCase();
+
+//     // SEARCH FILTER
+//     const matchSearch =
+//       q === "" ||
+//       (lead.fullName || "").toLowerCase().includes(q) ||
+//       (lead.email || "").toLowerCase().includes(q) ||
+//       (lead.phone || "").includes(q);
+
+//     // STATUS + FOLLOW-UP < 24 HOURS
+//     let matchStatus = true;
+
+//     if (statusFilter && statusFilter !== "all") {
+//       if (statusFilter === "followup_24") {
+//         const followup = lead.nextFollowUp ? new Date(lead.nextFollowUp) : null;
+
+//         if (!followup) {
+//           matchStatus = false;
+//         } else {
+//           const now = new Date();
+//           const last24 = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+//           matchStatus = followup >= last24 && followup <= now;
+//         }
+//       } else {
+//         matchStatus = lead.status === statusFilter;
+//       }
+//     }
+
+//     // DATE FILTER
+//     const leadDate = new Date(lead.createdAt || lead.receivedAt || Date.now());
+//     const matchDate =
+//       (!startDate || leadDate >= new Date(startDate)) &&
+//       (!endDate || leadDate <= new Date(endDate + "T23:59:59"));
+
+//     return matchSearch && matchStatus && matchDate;
+//   });
+// }, [leads, search, statusFilter, startDate, endDate]);
+
+
+// // PAGINATION (NO CHANGE)
+// const paginatedLeads = useMemo(() => {
+//   const start = (page - 1) * pageSize;
+//   return filteredLeads.slice(start, start + pageSize);
+// }, [filteredLeads, page]);
+
+//   // Local status update function (optimistic UI + backend)
+//   const handleLocalStatusChange = async (leadId: string, newStatus: Lead["status"]) => {
+//     setLoading(true);
+//     const token = sessionStorage.getItem("token") || "";
+
+//     // optimistic update
+//     const prev = leads;
+//     const updated = leads.map((l) => (l._id === leadId ? { ...l, status: newStatus } : l));
+//     setLeads(updated);
+//     onLeadsChange?.(updated); // notify parent if provided (so parent can recompute stats from leads)
+//     refreshStats?.();
+
+//     try {
+//       // If parent provided its own updater, use it (so parent can control refresh)
+//       if (onUpdateStatus) {
+//         await onUpdateStatus(leadId, newStatus);
+//       } else {
+//         // otherwise call API directly
+//         const ok = await updateLead(leadId, { status: newStatus }, token);
+//         if (!ok) {
+//           // rollback
+//           setLeads(prev);
+//           onLeadsChange?.(prev);
+//           refreshStats?.();
+//           alert("Server update failed — status rolled back.");
+//         } else {
+//           // success — optionally refresh parent stats from backend if they'd like
+//           refreshStats?.();
+//         }
+//       }
+//     } catch (err) {
+//       console.error("Status update error:", err);
+//       setLeads(prev);
+//       onLeadsChange?.(prev);
+//       refreshStats?.();
+//       alert("Error updating status.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // Follow-up modal open
+//   const openFollowUpModal = (lead: Lead) => {
+//     const safeLead: Lead = {
+//       ...lead,
+//       followUp: {
+//         date: lead.followUp?.date ?? null,
+//         recurrence: lead.followUp?.recurrence ?? null,
+//         message: lead.followUp?.message ?? null,
+//         whatsappOptIn: !!lead.followUp?.whatsappOptIn,
+//         active: !!lead.followUp?.active,
+//       },
+//     } as Lead;
+//     setFollowUpLead(safeLead);
+//   };
+
+//   // Save follow-up (backend + local)
+//   const saveFollowUp = async (leadId: string, followUp: any) => {
+//     setLoading(true);
+//     try {
+//       const token = sessionStorage.getItem("token") || "";
+//       const ok = await updateLead(leadId, { followUp }, token);
+//       if (!ok) {
+//         alert("Failed to save follow-up on server.");
+//         return;
+//       }
+//       const updated = leads.map((l) => (l._id === leadId ? { ...l, followUp } : l));
+//       setLeads(updated);
+//       onLeadsChange?.(updated);
+//       setFollowUpLead(null);
+//       refreshStats?.();
+//     } catch (err) {
+//       console.error(err);
+//       alert("Error saving follow-up.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // Save edited lead (backend + local)
+//   const saveEditedLead = async (lead: Lead) => {
+//     setLoading(true);
+//     try {
+//       const token = sessionStorage.getItem("token") || "";
+//       const ok = await updateLead(lead._id, lead, token);
+//       if (!ok) {
+//         alert("Failed to save lead.");
+//         return;
+//       }
+//       const updated = leads.map((p) => (p._id === lead._id ? lead : p));
+//       setLeads(updated);
+//       onLeadsChange?.(updated);
+//       setEditingLead(null);
+//       refreshStats?.();
+//     } catch (err) {
+//       console.error(err);
+//       alert("Error saving lead.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+ 
+// // LOAD LEADS FROM BACKEND WITH FOLLOW-UP FILTERS
+// const loadLeads = async () => {
+//   const token = sessionStorage.getItem("token") || "";
+
+//   // FOLLOW-UP FILTER MAPPING
+//   let followupFilter: string | undefined = undefined;
+
+//   if (statusFilter === "followup_today") followupFilter = "today";
+//   if (statusFilter === "followup_missed") followupFilter = "missed";
+//   if (statusFilter === "followup_week") followupFilter = "week";
+//   if (statusFilter === "followup_next24") followupFilter = "next24";
+
+//   const data = await fetchLeads(token, page, 10, {
+//     statusFilter,
+//     followupFilter,
+//     search,
+//     startDate,
+//     endDate,
+//   });
+
+//   setLeads(data.leads);
+// };
+// useEffect(() => {
+//   loadLeads();
+// }, [page, statusFilter, search, startDate, endDate]);
+
+
+//   return (
+//     <div className="relative flex flex-col gap-4">
+//       {/* Filter Bar */}
+//       <div className="flex flex-wrap gap-2 items-end justify-between border-b pb-3 mb-2">
+//         <div className="flex items-center gap-2">
+//           <Filter className="h-4 w-4 text-gray-500" />
+//           <Input
+//             placeholder="Search by name, email, or phone..."
+//             value={search}
+//             onChange={(e) => setSearch(e.target.value)}
+//             className="w-[220px]"
+//           />
+//         </div>
+//         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
+//   <SelectTrigger className="w-[180px]">
+//     <SelectValue placeholder="Filter by Status / Follow-up" />
+//   </SelectTrigger>
+
+//   <SelectContent>
+//     {/* Normal Status */}
+//     <SelectItem value="all">All</SelectItem>
+//     <SelectItem value="new">New</SelectItem>
+//     <SelectItem value="contacted">Contacted</SelectItem>
+//     <SelectItem value="converted">Converted</SelectItem>
+
+//     <SelectSeparator />
+
+//     {/* Follow-up Filters */}
+//     <SelectItem value="followup_today">Follow-Up Today</SelectItem>
+//     <SelectItem value="followup_missed">Missed Follow-Ups</SelectItem>
+//     <SelectItem value="followup_week">This Week Follow-Ups</SelectItem>
+//     <SelectItem value="followup_next24">Next 24 Hours</SelectItem>
+//   </SelectContent>
+// </Select>
+
+
+// <Button
+//   variant="outline"
+//   onClick={() => {
+//     setSearch("");
+//     setStartDate("");
+//     setEndDate("");
+//     setStatusFilter(""); // reset all filters
+//   }}
+// >
+//   Reset
+// </Button>
+// </div>
+
+//       {/* Table */}
+//       <div className="overflow-x-auto flex-1">
+//         <Table>
+//           <TableHeader>
+//             <TableRow>
+//               <TableHead>Name</TableHead>
+//               <TableHead>Contact</TableHead>
+//               <TableHead>Message</TableHead>
+//               <TableHead>Date</TableHead>
+//               <TableHead>Status</TableHead>
+//               <TableHead>Follow-Up</TableHead>
+//               <TableHead className="text-right">Actions</TableHead>
+//             </TableRow>
+//           </TableHeader>
+
+//           <TableBody>
+//             {paginatedLeads.length > 0 ? (
+//               paginatedLeads.map((lead) => (
+//                 <TableRow key={lead._id} className="hover:bg-muted/50">
+//                   <TableCell>
+//                     <div className="font-medium">{lead.fullName}</div>
+//                   </TableCell>
+
+//                   <TableCell>
+//                     <div className="space-y-1">
+//                       <div className="flex items-center text-sm text-muted-foreground">
+//                         <Mail className="h-3 w-3 mr-1" /> {lead.email || "—"}
+//                       </div>
+//                       <div className="flex items-center text-sm text-muted-foreground">
+//                         <Phone className="h-3 w-3 mr-1" /> {lead.phone || "—"}
+//                       </div>
+//                     </div>
+//                   </TableCell>
+
+//                   <TableCell>
+//                     <p className="text-sm truncate max-w-xs" title={lead.message || "N/A"}>
+//                       {lead.message || "—"}
+//                     </p>
+//                   </TableCell>
+
+//                   <TableCell>
+//                     <div className="flex items-center text-sm text-muted-foreground">
+//                       <Calendar className="h-3 w-3 mr-1" />
+//                       {lead.createdAt ? formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true }) : "—"}
+//                     </div>
+//                   </TableCell>
+
+//                   <TableCell>
+//                     <Select
+//                       value={lead.status || "new"}
+//                       onValueChange={(v) => handleLocalStatusChange(lead._id, v as Lead["status"])}
+//                     >
+//                       <SelectTrigger className="w-32">
+//                         <SelectValue>
+//                           <Badge variant={getStatusBadgeVariant(lead.status)}>{lead.status}</Badge>
+//                         </SelectValue>
+//                       </SelectTrigger>
+//                       <SelectContent>
+//                         <SelectItem value="new">New</SelectItem>
+//                         <SelectItem value="contacted">Contacted</SelectItem>
+//                         <SelectItem value="converted">Converted</SelectItem>
+//                       </SelectContent>
+//                     </Select>
+//                   </TableCell>
+
+//                   <TableCell>
+//                     {lead.followUp?.active && lead.followUp?.date ? (
+//                       <Badge className="bg-blue-600 text-white">
+//                         {formatDistanceToNow(new Date(lead.followUp.date), { addSuffix: true })}
+//                       </Badge>
+//                     ) : (
+//                       <span className="text-gray-400 text-sm">No Follow-up</span>
+//                     )}
+//                   </TableCell>
+
+//                   <TableCell className="text-right space-x-1">
+//                     <Button
+//                       onClick={() => {
+//                         setSelectedLead(lead);
+//                         setIsMessageModalOpen(true);
+//                         onSendMessage?.(lead);
+//                       }}
+//                       size="sm"
+//                       variant="outline"
+//                       className="hover:bg-blue-600 hover:text-white"
+//                     >
+//                       <MessageCircle className="h-4 w-4" />
+//                     </Button>
+
+//                     <Button onClick={() => setEditingLead(lead)} size="sm" variant="outline" className="hover:bg-amber-500 hover:text-white">
+//                       <Edit className="h-4 w-4" />
+//                     </Button>
+
+//                     <Button onClick={() => openFollowUpModal(lead)} size="sm" variant="outline" className="hover:bg-indigo-600 hover:text-white">
+//                       <Clock className="h-4 w-4" />
+//                     </Button>
+
+//                     <Button onClick={() => setActivityUserId(lead._id)} size="sm" variant="outline" className="hover:bg-green-600 hover:text-white">
+//                       <FileText className="h-4 w-4" />
+//                     </Button>
+
+//                     <Button onClick={() => onDeleteLead?.(lead._id)} size="sm" variant="destructive">
+//                       <Trash className="h-4 w-4" />
+//                     </Button>
+//                   </TableCell>
+//                 </TableRow>
+//               ))
+//             ) : (
+//               <TableRow>
+//                 <TableCell colSpan={7} className="text-center text-gray-500">
+//                   No leads found with selected filters.
+//                 </TableCell>
+//               </TableRow>
+//             )}
+//           </TableBody>
+//         </Table>
+//       </div>
+
+//       {/* Pagination */}
+//       <div className="flex justify-between px-4 pb-4">
+//         <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
+//           Previous
+//         </Button>
+
+//         <span className="text-sm">
+//           Page {page} of {Math.max(1, Math.ceil(filteredLeads.length / pageSize))}
+//         </span>
+
+//         <Button disabled={page >= Math.ceil(filteredLeads.length / pageSize)} onClick={() => setPage(page + 1)}>
+//           Next
+//         </Button>
+//       </div>
+
+//       {/* Edit Lead Modal */}
+//       {editingLead && (
+//         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+//           <div className="bg-[hsl(253.33_14.75%_11.96%)] rounded-lg shadow-xl p-6 w-96 space-y-3">
+//             <h2 className="text-lg font-semibold text-center">Edit Lead</h2>
+
+//             <input
+//               type="text"
+//               placeholder="Full Name"
+//               value={editingLead.fullName || ""}
+//               onChange={(e) => setEditingLead({ ...editingLead, fullName: e.target.value })}
+//               className="w-full border p-2 rounded"
+//               style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
+//             />
+
+//             <input
+//               type="email"
+//               placeholder="Email"
+//               value={editingLead.email || ""}
+//               onChange={(e) => setEditingLead({ ...editingLead, email: e.target.value })}
+//               className="w-full border p-2 rounded"
+//               style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
+//             />
+
+//             <input
+//               type="text"
+//               placeholder="Phone"
+//               value={editingLead.phone || ""}
+//               onChange={(e) => setEditingLead({ ...editingLead, phone: e.target.value })}
+//               className="w-full border p-2 rounded"
+//               style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
+//             />
+
+//             <textarea
+//               placeholder="Message"
+//               value={editingLead.message || ""}
+//               onChange={(e) => setEditingLead({ ...editingLead, message: e.target.value })}
+//               className="w-full border p-2 rounded"
+//               style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
+//             />
+
+//             <div className="flex justify-end gap-2 mt-3">
+//               <Button variant="outline" onClick={() => setEditingLead(null)} disabled={loading}>
+//                 Cancel
+//               </Button>
+//               <Button onClick={() => saveEditedLead(editingLead)} disabled={loading}>
+//                 {loading ? "Saving..." : "Save"}
+//               </Button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Follow-Up Modal */}
+//       {followUpLead && (
+//         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+//           <div className="bg-[#1c1a23] rounded-lg shadow-xl p-6 w-[520px] max-w-full space-y-4">
+//             <h3 className="text-lg font-semibold">Follow-up — {followUpLead.fullName}</h3>
+
+//             <div className="grid grid-cols-2 gap-3">
+//               <label className="flex flex-col">
+//                 <span className="text-sm">Date & Time</span>
+//                 <input
+//                   type="datetime-local"
+//                   value={
+//                     followUpLead.followUp?.date
+//                       ? new Date(followUpLead.followUp.date).toISOString().slice(0, 16)
+//                       : ""
+//                   }
+//                   onChange={(e) =>
+//                     setFollowUpLead({
+//                       ...followUpLead,
+//                       followUp: { ...followUpLead.followUp, date: e.target.value ? new Date(e.target.value).toISOString() : null },
+//                     })
+//                   }
+//                   className="border p-2 rounded"
+//                   style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
+//                 />
+//               </label>
+
+//               <label className="flex flex-col">
+//                 <span className="text-sm">Recurrence</span>
+//                 <select
+//                   value={followUpLead.followUp?.recurrence || ""}
+//                   onChange={(e) => setFollowUpLead({ ...followUpLead, followUp: { ...followUpLead.followUp, recurrence: e.target.value } })}
+//                   className="border p-2 rounded"
+//                   style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
+//                 >
+//                   <option value="">Once</option>
+//                   <option value="tomorrow">Tomorrow</option>
+//                   <option value="3days">3 days</option>
+//                   <option value="weekly">Weekly</option>
+//                 </select>
+//               </label>
+
+//               <label className="col-span-2 flex flex-col">
+//                 <span className="text-sm">Message</span>
+//                 <textarea
+//                   value={followUpLead.followUp?.message || ""}
+//                   onChange={(e) => setFollowUpLead({ ...followUpLead, followUp: { ...followUpLead.followUp, message: e.target.value } })}
+//                   className="border p-2 rounded min-h-[80px]"
+//                   style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
+//                 />
+//               </label>
+
+//               <div className="flex items-center gap-4">
+//                 <label className="flex items-center gap-2">
+//                   <input
+//                     type="checkbox"
+//                     checked={!!followUpLead.followUp?.whatsappOptIn}
+//                     onChange={(e) => setFollowUpLead({ ...followUpLead, followUp: { ...followUpLead.followUp, whatsappOptIn: e.target.checked } })}
+//                   />
+//                   <span className="text-sm">Send on WhatsApp</span>
+//                 </label>
+
+//                 <label className="flex items-center gap-2">
+//                   <input
+//                     type="checkbox"
+//                     checked={!!followUpLead.followUp?.active}
+//                     onChange={(e) => setFollowUpLead({ ...followUpLead, followUp: { ...followUpLead.followUp, active: e.target.checked } })}
+//                   />
+//                   <span className="text-sm">Active</span>
+//                 </label>
+//               </div>
+//             </div>
+
+//             <div className="flex justify-end gap-2">
+//               <Button variant="outline" onClick={() => setFollowUpLead(null)}>
+//                 Cancel
+//               </Button>
+//               <Button onClick={() => saveFollowUp(followUpLead._id, followUpLead.followUp)} disabled={loading}>
+//                 {loading ? "Saving..." : "Save Follow-up"}
+//               </Button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       {activityUserId && <AdminActivityModal userId={activityUserId} onClose={() => setActivityUserId(null)} />}
+
+//       {selectedLead && (
+//         <SendMessageModal
+//           lead={selectedLead}
+//           isOpen={isMessageModalOpen}
+//           onClose={() => {
+//             setIsMessageModalOpen(false);
+//             setSelectedLead(null);
+//           }}
+//           onSend={() => {
+//             alert(`Message sent to ${selectedLead.fullName}`);
+//             setIsMessageModalOpen(false);
+//             setSelectedLead(null);
+//           }}
+//         />
+//       )}
+//     </div>
+//   );
+// };
+
+// export default LeadTable;
+
+
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -528,6 +1144,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
@@ -542,19 +1159,16 @@ import {
   Clock,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { Lead, updateLead } from "@/utils/api";
+import { Lead, updateLead, fetchLeads } from "@/utils/api";
 import SendMessageModal from "@/components/SendMessageModal";
 import AdminActivityModal from "@/components/AdminActivityModal";
 
 interface LeadTableProps {
-  leads: Lead[]; // incoming list from parent
+  leads: Lead[];
   onSendMessage?: (lead: Lead) => void;
   onDeleteLead?: (leadId: string) => void;
-  // Optional callback: parent can receive updated leads array (useful to recompute stats in parent)
   onLeadsChange?: (newLeads: Lead[]) => void;
-  // Optional explicit API-backed status handler (if parent prefers to control)
   onUpdateStatus?: (leadId: string, status: Lead["status"]) => Promise<void> | void;
-  // Optional: refresh stats helper to call parent to re-calc counts
   refreshStats?: () => void;
 }
 
@@ -566,18 +1180,17 @@ const LeadTable = ({
   onUpdateStatus,
   refreshStats,
 }: LeadTableProps) => {
-  // Local copy so UI updates immediately without forcing parent update
   const [leads, setLeads] = useState<Lead[]>(propLeads ?? []);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
   const [activityUserId, setActivityUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [manualCheck, setManualCheck] = useState<Record<string, boolean>>({});
 
-  // follow-up modal state
   const [followUpLead, setFollowUpLead] = useState<Lead | null>(null);
 
-  // filters & pagination
+  // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -586,7 +1199,6 @@ const LeadTable = ({
   const [page, setPage] = useState(1);
   const pageSize = 15;
 
-  // Sync local when parent prop changes
   useEffect(() => {
     setLeads(propLeads ?? []);
     setPage(1);
@@ -605,74 +1217,91 @@ const LeadTable = ({
     }
   };
 
-  // filtered leads (frontend)
-  const filteredLeads = useMemo(() => {
-    return leads.filter((lead) => {
-      const q = search.trim().toLowerCase();
-      const matchSearch =
-        q === "" ||
-        (lead.fullName || "").toLowerCase().includes(q) ||
-        (lead.email || "").toLowerCase().includes(q) ||
-        (lead.phone || "").includes(q);
+  // -----------------------------------------------------
+  // ❗ FINAL — NO FRONTEND FILTERING ANYMORE
+  // -----------------------------------------------------
+  const filteredLeads = leads;
 
-      const matchStatus = !statusFilter || statusFilter === "all" || lead.status === statusFilter;
-
-      const leadDate = new Date(lead.createdAt || lead.receivedAt || Date.now());
-      const matchDate =
-        (!startDate || leadDate >= new Date(startDate)) &&
-        (!endDate || leadDate <= new Date(endDate + "T23:59:59"));
-
-      return matchSearch && matchStatus && matchDate;
-    });
-  }, [leads, search, statusFilter, startDate, endDate]);
-
+  // Pagination stays same
   const paginatedLeads = useMemo(() => {
     const start = (page - 1) * pageSize;
     return filteredLeads.slice(start, start + pageSize);
   }, [filteredLeads, page]);
 
-  // Local status update function (optimistic UI + backend)
+  // -----------------------------------------------------
+  // LOAD LEADS FROM BACKEND WITH FOLLOW-UP FILTER MAPPING
+  // -----------------------------------------------------
+  const loadLeads = async () => {
+    const token = sessionStorage.getItem("token") || "";
+
+    let followupFilter: string | undefined = undefined;
+    if (statusFilter === "followup_today") followupFilter = "today";
+    if (statusFilter === "followup_missed") followupFilter = "missed";
+    if (statusFilter === "followup_week") followupFilter = "week";
+    if (statusFilter === "followup_next24") followupFilter = "next24";
+
+    const data = await fetchLeads(token, page, 10, {
+      statusFilter,
+      followupFilter,
+      search,
+      startDate,
+      endDate,
+    });
+
+    setLeads(data.leads ?? []);
+  };
+
+  useEffect(() => {
+    loadLeads();
+  }, [page, statusFilter, search, startDate, endDate]);
+
+  // -----------------------------------------------------
+  // Update Lead Status
+  // -----------------------------------------------------
   const handleLocalStatusChange = async (leadId: string, newStatus: Lead["status"]) => {
     setLoading(true);
     const token = sessionStorage.getItem("token") || "";
 
-    // optimistic update
     const prev = leads;
     const updated = leads.map((l) => (l._id === leadId ? { ...l, status: newStatus } : l));
     setLeads(updated);
-    onLeadsChange?.(updated); // notify parent if provided (so parent can recompute stats from leads)
+
+    onLeadsChange?.(updated);
     refreshStats?.();
 
     try {
-      // If parent provided its own updater, use it (so parent can control refresh)
       if (onUpdateStatus) {
         await onUpdateStatus(leadId, newStatus);
       } else {
-        // otherwise call API directly
         const ok = await updateLead(leadId, { status: newStatus }, token);
         if (!ok) {
-          // rollback
           setLeads(prev);
           onLeadsChange?.(prev);
           refreshStats?.();
-          alert("Server update failed — status rolled back.");
+          alert("Failed");
         } else {
-          // success — optionally refresh parent stats from backend if they'd like
           refreshStats?.();
         }
       }
-    } catch (err) {
-      console.error("Status update error:", err);
+    } catch {
       setLeads(prev);
       onLeadsChange?.(prev);
       refreshStats?.();
-      alert("Error updating status.");
     } finally {
       setLoading(false);
     }
   };
+  const toggleManualCheck = (id: string) => {
+    setManualCheck(prev => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+  
 
-  // Follow-up modal open
+  // -----------------------------------------------------
+  // Follow-up
+  // -----------------------------------------------------
   const openFollowUpModal = (lead: Lead) => {
     const safeLead: Lead = {
       ...lead,
@@ -683,84 +1312,91 @@ const LeadTable = ({
         whatsappOptIn: !!lead.followUp?.whatsappOptIn,
         active: !!lead.followUp?.active,
       },
-    } as Lead;
+    };
     setFollowUpLead(safeLead);
   };
 
-  // Save follow-up (backend + local)
   const saveFollowUp = async (leadId: string, followUp: any) => {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("token") || "";
       const ok = await updateLead(leadId, { followUp }, token);
-      if (!ok) {
-        alert("Failed to save follow-up on server.");
-        return;
-      }
+
+      if (!ok) return alert("Failed to save");
+
       const updated = leads.map((l) => (l._id === leadId ? { ...l, followUp } : l));
       setLeads(updated);
       onLeadsChange?.(updated);
       setFollowUpLead(null);
       refreshStats?.();
-    } catch (err) {
-      console.error(err);
-      alert("Error saving follow-up.");
+    } catch {
+      alert("Error");
     } finally {
       setLoading(false);
     }
   };
 
-  // Save edited lead (backend + local)
+  // -----------------------------------------------------
+  // Edit Lead
+  // -----------------------------------------------------
   const saveEditedLead = async (lead: Lead) => {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("token") || "";
       const ok = await updateLead(lead._id, lead, token);
-      if (!ok) {
-        alert("Failed to save lead.");
-        return;
-      }
-      const updated = leads.map((p) => (p._id === lead._id ? lead : p));
+
+      if (!ok) return alert("Failed to save");
+
+      const updated = leads.map((l) => (l._id === lead._id ? lead : l));
       setLeads(updated);
       onLeadsChange?.(updated);
       setEditingLead(null);
       refreshStats?.();
-    } catch (err) {
-      console.error(err);
-      alert("Error saving lead.");
+    } catch {
+      alert("Error updating");
     } finally {
       setLoading(false);
     }
   };
 
+  // -----------------------------------------------------
+  // UI
+  // -----------------------------------------------------
+
   return (
     <div className="relative flex flex-col gap-4">
-      {/* Filter Bar */}
+
+      {/* Filters */}
       <div className="flex flex-wrap gap-2 items-end justify-between border-b pb-3 mb-2">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-gray-500" />
           <Input
-            placeholder="Search by name, email, or phone..."
+            placeholder="Search..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-[220px]"
           />
         </div>
 
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Filter by Status" />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filter Status / Follow-Up" />
           </SelectTrigger>
+
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="new">New</SelectItem>
             <SelectItem value="contacted">Contacted</SelectItem>
             <SelectItem value="converted">Converted</SelectItem>
+
+            <SelectSeparator />
+
+            <SelectItem value="followup_today">Follow-Up Today</SelectItem>
+            <SelectItem value="followup_missed">Missed Follow-Ups</SelectItem>
+            <SelectItem value="followup_week">This Week Follow-Ups</SelectItem>
+            <SelectItem value="followup_next24">Next 24 Hours</SelectItem>
           </SelectContent>
         </Select>
-
-        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-[150px]" />
-        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-[150px]" />
 
         <Button
           variant="outline"
@@ -785,6 +1421,7 @@ const LeadTable = ({
               <TableHead>Message</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Mark</TableHead>
               <TableHead>Follow-Up</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -793,45 +1430,42 @@ const LeadTable = ({
           <TableBody>
             {paginatedLeads.length > 0 ? (
               paginatedLeads.map((lead) => (
-                <TableRow key={lead._id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <div className="font-medium">{lead.fullName}</div>
-                  </TableCell>
+                <TableRow key={lead._id}>
+
+                  <TableCell>{lead.fullName}</TableCell>
 
                   <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Mail className="h-3 w-3 mr-1" /> {lead.email || "—"}
-                      </div>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Phone className="h-3 w-3 mr-1" /> {lead.phone || "—"}
-                      </div>
+                    <div className="text-sm">
+                      <Mail className="inline h-3 w-3 mr-1" /> {lead.email || "—"} <br />
+                      <Phone className="inline h-3 w-3 mr-1" /> {lead.phone || "—"}
                     </div>
                   </TableCell>
 
-                  <TableCell>
-                    <p className="text-sm truncate max-w-xs" title={lead.message || "N/A"}>
-                      {lead.message || "—"}
-                    </p>
+                  <TableCell className="max-w-xs truncate">
+                    {lead.message || "—"}
                   </TableCell>
 
                   <TableCell>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {lead.createdAt ? formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true }) : "—"}
-                    </div>
+                    {lead.createdAt
+                      ? formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })
+                      : "—"}
                   </TableCell>
 
                   <TableCell>
                     <Select
-                      value={lead.status || "new"}
-                      onValueChange={(v) => handleLocalStatusChange(lead._id, v as Lead["status"])}
+                      value={lead.status}
+                      onValueChange={(v) =>
+                        handleLocalStatusChange(lead._id, v as Lead["status"])
+                      }
                     >
-                      <SelectTrigger className="w-32">
+                      <SelectTrigger className="w-28">
                         <SelectValue>
-                          <Badge variant={getStatusBadgeVariant(lead.status)}>{lead.status}</Badge>
+                          <Badge variant={getStatusBadgeVariant(lead.status)}>
+                            {lead.status}
+                          </Badge>
                         </SelectValue>
                       </SelectTrigger>
+
                       <SelectContent>
                         <SelectItem value="new">New</SelectItem>
                         <SelectItem value="contacted">Contacted</SelectItem>
@@ -839,11 +1473,21 @@ const LeadTable = ({
                       </SelectContent>
                     </Select>
                   </TableCell>
+                  <TableCell>
+  <input
+    type="checkbox"
+    checked={manualCheck[lead._id] || false}
+    onChange={() => toggleManualCheck(lead._id)}
+  />
+</TableCell>
+
 
                   <TableCell>
                     {lead.followUp?.active && lead.followUp?.date ? (
                       <Badge className="bg-blue-600 text-white">
-                        {formatDistanceToNow(new Date(lead.followUp.date), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(lead.followUp.date), {
+                          addSuffix: true,
+                        })}
                       </Badge>
                     ) : (
                       <span className="text-gray-400 text-sm">No Follow-up</span>
@@ -852,58 +1496,77 @@ const LeadTable = ({
 
                   <TableCell className="text-right space-x-1">
                     <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => {
                         setSelectedLead(lead);
                         setIsMessageModalOpen(true);
-                        onSendMessage?.(lead);
                       }}
-                      size="sm"
-                      variant="outline"
-                      className="hover:bg-blue-600 hover:text-white"
                     >
                       <MessageCircle className="h-4 w-4" />
                     </Button>
 
-                    <Button onClick={() => setEditingLead(lead)} size="sm" variant="outline" className="hover:bg-amber-500 hover:text-white">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingLead(lead)}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
 
-                    <Button onClick={() => openFollowUpModal(lead)} size="sm" variant="outline" className="hover:bg-indigo-600 hover:text-white">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openFollowUpModal(lead)}
+                    >
                       <Clock className="h-4 w-4" />
                     </Button>
 
-                    <Button onClick={() => setActivityUserId(lead._id)} size="sm" variant="outline" className="hover:bg-green-600 hover:text-white">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setActivityUserId(lead._id)}
+                    >
                       <FileText className="h-4 w-4" />
                     </Button>
 
-                    <Button onClick={() => onDeleteLead?.(lead._id)} size="sm" variant="destructive">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onDeleteLead?.(lead._id)}
+                    >
                       <Trash className="h-4 w-4" />
                     </Button>
                   </TableCell>
+
                 </TableRow>
               ))
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-gray-500">
-                  No leads found with selected filters.
+                  No leads found.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
+
         </Table>
       </div>
 
       {/* Pagination */}
-      <div className="flex justify-between px-4 pb-4">
+      <div className="flex justify-between px-4 py-4">
         <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
           Previous
         </Button>
 
-        <span className="text-sm">
+        <span>
           Page {page} of {Math.max(1, Math.ceil(filteredLeads.length / pageSize))}
         </span>
 
-        <Button disabled={page >= Math.ceil(filteredLeads.length / pageSize)} onClick={() => setPage(page + 1)}>
+        <Button
+          disabled={page >= Math.ceil(filteredLeads.length / pageSize)}
+          onClick={() => setPage(page + 1)}
+        >
           Next
         </Button>
       </div>
@@ -911,52 +1574,58 @@ const LeadTable = ({
       {/* Edit Lead Modal */}
       {editingLead && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-[hsl(253.33_14.75%_11.96%)] rounded-lg shadow-xl p-6 w-96 space-y-3">
-            <h2 className="text-lg font-semibold text-center">Edit Lead</h2>
+          <div className="bg-[#1c1a23] p-6 rounded-lg w-96">
+          
+            <h2 className="text-lg font-semibold mb-3">Edit Lead</h2>
 
             <input
               type="text"
-              placeholder="Full Name"
-              value={editingLead.fullName || ""}
-              onChange={(e) => setEditingLead({ ...editingLead, fullName: e.target.value })}
-              className="w-full border p-2 rounded"
-              style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
-            />
+              value={editingLead.fullName ?? ""}
+              onChange={(e) =>
+                setEditingLead({ ...editingLead, fullName: e.target.value })
+              }
+              className="w-full p-2 border rounded mb-2"
+              style={{ backgroundColor: "#0d0c10", color: "white", borderColor: "#333" }}
+              />
 
             <input
               type="email"
-              placeholder="Email"
-              value={editingLead.email || ""}
-              onChange={(e) => setEditingLead({ ...editingLead, email: e.target.value })}
-              className="w-full border p-2 rounded"
-              style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
-            />
+              value={editingLead.email ?? ""}
+              onChange={(e) =>
+                setEditingLead({ ...editingLead, email: e.target.value })
+              }
+              className="w-full p-2 border rounded mb-2"
+              style={{ backgroundColor: "#0d0c10", color: "white", borderColor: "#333" }}
+              />
 
             <input
               type="text"
-              placeholder="Phone"
-              value={editingLead.phone || ""}
-              onChange={(e) => setEditingLead({ ...editingLead, phone: e.target.value })}
-              className="w-full border p-2 rounded"
-              style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
-            />
+              value={editingLead.phone ?? ""}
+              onChange={(e) =>
+                setEditingLead({ ...editingLead, phone: e.target.value })
+              }
+              className="w-full p-2 border rounded mb-2"
+              style={{ backgroundColor: "#0d0c10", color: "white", borderColor: "#333" }}
+              />
 
             <textarea
-              placeholder="Message"
-              value={editingLead.message || ""}
-              onChange={(e) => setEditingLead({ ...editingLead, message: e.target.value })}
-              className="w-full border p-2 rounded"
-              style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
-            />
+              value={editingLead.message ?? ""}
+              onChange={(e) =>
+                setEditingLead({ ...editingLead, message: e.target.value })
+              }
+              className="w-full p-2 border rounded mb-2"
+              style={{ backgroundColor: "#0d0c10", color: "white", borderColor: "#333" }}
+              />
 
-            <div className="flex justify-end gap-2 mt-3">
-              <Button variant="outline" onClick={() => setEditingLead(null)} disabled={loading}>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditingLead(null)}>
                 Cancel
               </Button>
-              <Button onClick={() => saveEditedLead(editingLead)} disabled={loading}>
-                {loading ? "Saving..." : "Save"}
+              <Button onClick={() => saveEditedLead(editingLead)}>
+                Save
               </Button>
             </div>
+
           </div>
         </div>
       )}
@@ -964,90 +1633,133 @@ const LeadTable = ({
       {/* Follow-Up Modal */}
       {followUpLead && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-[#1c1a23] rounded-lg shadow-xl p-6 w-[520px] max-w-full space-y-4">
-            <h3 className="text-lg font-semibold">Follow-up — {followUpLead.fullName}</h3>
+          <div className="bg-[#1c1a23] p-6 rounded-lg w-[420px]">
 
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col">
-                <span className="text-sm">Date & Time</span>
+            <h2 className="text-lg font-semibold mb-3">
+              Follow-Up — {followUpLead.fullName}
+            </h2>
+
+            <input
+              type="datetime-local"
+              value={
+                followUpLead.followUp?.date
+                  ? new Date(followUpLead.followUp.date)
+                      .toISOString()
+                      .slice(0, 16)
+                  : ""
+              }
+              onChange={(e) =>
+                setFollowUpLead({
+                  ...followUpLead,
+                  followUp: {
+                    ...followUpLead.followUp,
+                    date: e.target.value
+                      ? new Date(e.target.value).toISOString()
+                      : null,
+                  },
+                })
+              }
+              className="w-full p-2 border rounded mb-2"
+              style={{ backgroundColor: "#0d0c10", color: "white", borderColor: "#333" }}
+              />
+
+            <select
+              value={followUpLead.followUp?.recurrence ?? ""}
+              onChange={(e) =>
+                setFollowUpLead({
+                  ...followUpLead,
+                  followUp: {
+                    ...followUpLead.followUp,
+                    recurrence: e.target.value,
+                  },
+                })
+              }
+              className="w-full p-2 border rounded mb-2"
+              style={{ backgroundColor: "#0d0c10", color: "white", borderColor: "#333" }}
+              >
+              <option value="">Once</option>
+              <option value="tomorrow">Tomorrow</option>
+              <option value="3days">3 Days</option>
+              <option value="weekly">Weekly</option>
+            </select>
+
+            <textarea
+              value={followUpLead.followUp?.message ?? ""}
+              onChange={(e) =>
+                setFollowUpLead({
+                  ...followUpLead,
+                  followUp: {
+                    ...followUpLead.followUp,
+                    message: e.target.value,
+                  },
+                })
+              }
+              className="w-full p-2 border rounded mb-3"
+              style={{ backgroundColor: "#0d0c10", color: "white", borderColor: "#333" }}
+              />
+
+            <div className="flex gap-4 mb-3">
+              <label className="flex items-center gap-2">
                 <input
-                  type="datetime-local"
-                  value={
-                    followUpLead.followUp?.date
-                      ? new Date(followUpLead.followUp.date).toISOString().slice(0, 16)
-                      : ""
-                  }
+                  type="checkbox"
+                  checked={!!followUpLead.followUp?.whatsappOptIn}
                   onChange={(e) =>
                     setFollowUpLead({
                       ...followUpLead,
-                      followUp: { ...followUpLead.followUp, date: e.target.value ? new Date(e.target.value).toISOString() : null },
+                      followUp: {
+                        ...followUpLead.followUp,
+                        whatsappOptIn: e.target.checked,
+                      },
                     })
                   }
-                  className="border p-2 rounded"
-                  style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
                 />
+                WhatsApp
               </label>
 
-              <label className="flex flex-col">
-                <span className="text-sm">Recurrence</span>
-                <select
-                  value={followUpLead.followUp?.recurrence || ""}
-                  onChange={(e) => setFollowUpLead({ ...followUpLead, followUp: { ...followUpLead.followUp, recurrence: e.target.value } })}
-                  className="border p-2 rounded"
-                  style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
-                >
-                  <option value="">Once</option>
-                  <option value="tomorrow">Tomorrow</option>
-                  <option value="3days">3 days</option>
-                  <option value="weekly">Weekly</option>
-                </select>
-              </label>
-
-              <label className="col-span-2 flex flex-col">
-                <span className="text-sm">Message</span>
-                <textarea
-                  value={followUpLead.followUp?.message || ""}
-                  onChange={(e) => setFollowUpLead({ ...followUpLead, followUp: { ...followUpLead.followUp, message: e.target.value } })}
-                  className="border p-2 rounded min-h-[80px]"
-                  style={{ backgroundColor: "hsl(250deg 13.04% 9.02%)" }}
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={!!followUpLead.followUp?.active}
+                  onChange={(e) =>
+                    setFollowUpLead({
+                      ...followUpLead,
+                      followUp: {
+                        ...followUpLead.followUp,
+                        active: e.target.checked,
+                      },
+                    })
+                  }
                 />
+                Active
               </label>
-
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={!!followUpLead.followUp?.whatsappOptIn}
-                    onChange={(e) => setFollowUpLead({ ...followUpLead, followUp: { ...followUpLead.followUp, whatsappOptIn: e.target.checked } })}
-                  />
-                  <span className="text-sm">Send on WhatsApp</span>
-                </label>
-
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={!!followUpLead.followUp?.active}
-                    onChange={(e) => setFollowUpLead({ ...followUpLead, followUp: { ...followUpLead.followUp, active: e.target.checked } })}
-                  />
-                  <span className="text-sm">Active</span>
-                </label>
-              </div>
             </div>
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setFollowUpLead(null)}>
                 Cancel
               </Button>
-              <Button onClick={() => saveFollowUp(followUpLead._id, followUpLead.followUp)} disabled={loading}>
-                {loading ? "Saving..." : "Save Follow-up"}
+              <Button
+                onClick={() =>
+                  saveFollowUp(followUpLead._id, followUpLead.followUp)
+                }
+              >
+                Save Follow-Up
               </Button>
             </div>
+
           </div>
         </div>
       )}
 
-      {activityUserId && <AdminActivityModal userId={activityUserId} onClose={() => setActivityUserId(null)} />}
+      {/* Activity Modal */}
+      {activityUserId && (
+        <AdminActivityModal
+          userId={activityUserId}
+          onClose={() => setActivityUserId(null)}
+        />
+      )}
 
+      {/* Message Modal */}
       {selectedLead && (
         <SendMessageModal
           lead={selectedLead}
@@ -1058,11 +1770,10 @@ const LeadTable = ({
           }}
           onSend={() => {
             alert(`Message sent to ${selectedLead.fullName}`);
-            setIsMessageModalOpen(false);
-            setSelectedLead(null);
           }}
         />
       )}
+
     </div>
   );
 };

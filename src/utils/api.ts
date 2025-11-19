@@ -121,88 +121,82 @@ export const resetPassword = async (
 
 // -------------------------
 // Lead Management (Admin)
+// -------------------------
+// Lead Management (Admin)
+// -------------------------
+export const fetchLeads = async (
+  token: string,
+  page: number = 1,
+  limit: number = 10,
+  options: {
+    statusFilter?: string;
+    followupFilter?: string;   // FOLLOW-UP FILTER
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+  } = {}
+) => {
+  try {
+    const { statusFilter, followupFilter, search, startDate, endDate } = options;
 
-    export const fetchLeads = async (
-      token: string,
-      page: number = 1,
-      limit: number = 10
-    ): Promise<{
-      leads: Lead[];
-      totalPages: number;
-      page: number;
-      totalLeads: number;
-      newLeadsCount: number;
-      contactedCount: number;
-      convertedCount: number;
-    }> => {
-      try {
-        const res = await fetch(
-          `${API_BASE}/leads/leads?page=${page}&limit=${limit}`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-    
-        if (res.status === 401) {
-          sessionStorage.removeItem("token");
-          throw new Error("Unauthorized. Please login again.");
-        }
-    
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(`Failed to fetch leads: ${errText}`);
-        }
-    
-        const data = await res.json();
-    
-        // -----------------------------------
-        // 🧠 SMART FUTURE-PROOF PARSING
-        // -----------------------------------
-    
-        const leads = Array.isArray(data)
-          ? data                     // backend returned ONLY array
-          : data.leads ?? data.data ?? [];  // backend returned object
-    
-        const totalLeads =
-          data.totalLeads ??
-          data.count ??
-          leads.length; // fallback
-    
-        const pageNumber = data.page ?? page;
-        const totalPages =
-          data.totalPages ??
-          Math.ceil(totalLeads / limit) ??
-          1;
-    
-        return {
-          leads,
-          totalPages,
-          page: pageNumber,
-          totalLeads,
-          newLeadsCount: data.newLeadsCount ?? 0,
-          contactedCount: data.contactedCount ?? 0,
-          convertedCount: data.convertedCount ?? 0,
-        };
-    
-      } catch (error) {
-        console.error("❌ Fetch leads error:", error);
-    
-        return {
-          leads: [],
-          totalPages: 1,
-          page: 1,
-          totalLeads: 0,
-          newLeadsCount: 0,
-          contactedCount: 0,
-          convertedCount: 0,
-        };
-      }
+    const query = new URLSearchParams();
+
+    query.append("page", page.toString());
+    query.append("limit", limit.toString());
+
+    // ---- FOLLOW-UP FILTERS ----
+    if (followupFilter) {
+      query.append("followupFilter", followupFilter);
+    }
+
+    // ---- STATUS FILTER ----
+    if (statusFilter && statusFilter !== "all" && !statusFilter.startsWith("followup_")) {
+      query.append("status", statusFilter);
+    }
+
+    // ---- SEARCH ----
+    if (search) query.append("search", search);
+
+    // ---- DATE ----
+    if (startDate) query.append("startDate", startDate);
+    if (endDate) query.append("endDate", endDate);
+
+    const res = await fetch(`${API_BASE}/leads/leads?${query.toString()}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json();
+
+    // Backend returns array
+    const leads = Array.isArray(data) ? data : data.leads ?? [];
+
+    return {
+      leads,
+      totalPages: data.totalPages ?? 1,
+      page: data.page ?? page,
+      totalLeads: data.totalLeads ?? leads.length,
+      newLeadsCount: data.newLeadsCount ?? 0,
+      contactedCount: data.contactedCount ?? 0,
+      convertedCount: data.convertedCount ?? 0,
     };
-    
 
+  } catch (error) {
+    console.error("❌ fetchLeads error:", error);
+
+    return {
+      leads: [],
+      totalPages: 1,
+      page: 1,
+      totalLeads: 0,
+      newLeadsCount: 0,
+      contactedCount: 0,
+      convertedCount: 0,
+    };
+  }
+};
 
 export const updateLead = async (
   leadId: string,
