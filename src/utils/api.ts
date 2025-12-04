@@ -336,6 +336,16 @@ export const sendMessage = async (
     const errorData = await res.json();
     throw new Error(errorData.error || "Failed to send message");
   }
+} catch (err: any) {
+  console.error("Message send error:", err);
+
+  toast({
+    title: "Message Sending Failed",
+    description: err.message || "Email/WhatsApp not delivered",
+    variant: "destructive",
+  });
+}
+
 
   return res.json();
 };
