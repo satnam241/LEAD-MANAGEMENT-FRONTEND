@@ -466,7 +466,7 @@ const AdminDashboard = ({ onLogout }) => {
             </div>
             <div>
               <h1 className="text-2xl font-bold gradient-text">Lead Management</h1>
-              <p className="text-sm text-muted-foreground">Modern Admin Dashboard</p>
+              <p className="text-sm text-muted-foreground"> Admin Dashboard</p>
             </div>
           </div>
 

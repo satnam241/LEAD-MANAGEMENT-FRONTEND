@@ -7,7 +7,7 @@
     "dev": "vite --port 4620",
     "build": "tsc --project tsconfig.node.json && vite build",
     "preview": "vite preview --port 4620",
-    "start": "serve -s dist -l $PORT"
+    "start": " dist -l $PORT"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
