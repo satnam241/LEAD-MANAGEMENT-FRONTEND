@@ -314,40 +314,32 @@ export const exportLeadsToCSV = (leads: Lead[]): string => {
   return csvContent;
 };
 
-
-// -------------------------
-// Send Message to Lead
 export const sendMessage = async (
   leadId: string,
   type: "email" | "whatsapp" | "both",
   message: string,
   token: string
 ) => {
-  const res = await fetch(`${API_BASE}/messages/${leadId}/send-message`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ leadId, messageType: type, message }),
-  });
+  try {
+    const res = await fetch(`${API_BASE}/messages/${leadId}/send-message`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ leadId, messageType: type, message }),
+    });
 
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.error || "Failed to send message");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null);
+      throw new Error(errorData?.error || "Failed to send message");
+    }
+
+    return res.json();
+  } catch (err: any) {
+    console.error("Message send error:", err);
+    throw err; // IMPORTANT
   }
-} catch (err: any) {
-  console.error("Message send error:", err);
-
-  toast({
-    title: "Message Sending Failed",
-    description: err.message || "Email/WhatsApp not delivered",
-    variant: "destructive",
-  });
-}
-
-
-  return res.json();
 };
 
 export const getAdminProfile = async (
